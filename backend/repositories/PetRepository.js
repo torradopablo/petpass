@@ -20,7 +20,33 @@ class PetRepository {
     }
 
     async findByOwner(ownerId) {
-        const { data, error } = await supabase.from('pets').select('*').eq('owner_id', ownerId);
+        const { data, error } = await supabase
+            .from('pets')
+            .select('*')
+            .eq('owner_id', ownerId)
+            .is('deleted_at', null);  // Filter out soft-deleted pets
+        if (error) throw error;
+        return data;
+    }
+
+    async update(id, petData) {
+        const { data, error } = await supabase
+            .from('pets')
+            .update(petData)
+            .eq('id', id)
+            .select()
+            .single();
+        if (error) throw error;
+        return data;
+    }
+
+    async softDelete(id) {
+        const { data, error } = await supabase
+            .from('pets')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', id)
+            .select()
+            .single();
         if (error) throw error;
         return data;
     }

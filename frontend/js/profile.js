@@ -33,8 +33,18 @@ async function loadProfile() {
 
         // Render Data
         document.getElementById('pet-name').textContent = pet.name;
-        document.getElementById('pet-photo').src = pet.photo_url || `https://ui-avatars.com/api/?name=${pet.name}`;
+        document.getElementById('pet-photo').src = pet.photo_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(pet.name)}`;
         document.getElementById('pet-info').textContent = pet.medical_info || 'Sin información adicional.';
+
+        // Species
+        const speciesIcon = pet.species === 'gato' ? '🐱 Gato' : '🐶 Perro';
+        document.getElementById('pet-species').textContent = speciesIcon;
+
+        // Breed
+        document.getElementById('pet-breed').textContent = pet.breed || 'Sin especificar';
+
+        // Weight
+        document.getElementById('pet-weight').textContent = pet.weight || 'Sin especificar';
 
         // Calc Age
         if (pet.birth_date) {
@@ -48,8 +58,22 @@ async function loadProfile() {
             }
             const ageText = years > 0 ? `${years} años` : `${months} meses`;
             document.getElementById('pet-age').textContent = ageText;
+        } else if (pet.age) {
+            document.getElementById('pet-age').textContent = pet.age + ' años';
         } else {
-            document.getElementById('pet-age').textContent = pet.age || 'Edad desconocida';
+            document.getElementById('pet-age').textContent = 'Sin especificar';
+        }
+
+        // Vaccines
+        if (pet.vaccines && pet.vaccines.trim()) {
+            const vaccinesArray = pet.vaccines.split(',').map(v => v.trim()).filter(v => v);
+            if (vaccinesArray.length > 0) {
+                const vaccinesContainer = document.getElementById('pet-vaccines');
+                vaccinesContainer.innerHTML = vaccinesArray.map(vaccine =>
+                    `<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">${vaccine}</span>`
+                ).join('');
+                document.getElementById('pet-vaccines-section').classList.remove('hidden');
+            }
         }
 
         if (pet.is_premium) {

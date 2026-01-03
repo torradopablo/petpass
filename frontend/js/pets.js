@@ -24,6 +24,13 @@ export const Pets = {
             await this.addPet(new FormData(addPetForm));
         });
 
+        // Edit pet form handler
+        const editPetForm = document.getElementById('edit-pet-form');
+        editPetForm?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.updatePet(new FormData(editPetForm));
+        });
+
         // Species change listener
         window.addEventListener('species-change', (e) => {
             this.selectedSpecies = e.detail;
@@ -47,8 +54,8 @@ export const Pets = {
         });
     },
 
-    renderVaccines(species) {
-        const container = document.getElementById('vaccines-container');
+    renderVaccines(species, containerId = 'vaccines-container') {
+        const container = document.getElementById(containerId);
         if (!container) return;
 
         const vaccines = this.vaccineOptions[species] || [];
@@ -100,6 +107,22 @@ export const Pets = {
                 grid.appendChild(this.createPetCard(pet));
             });
 
+            // Add event listeners for delete buttons
+            grid.querySelectorAll('.delete-pet-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const petId = btn.dataset.petId;
+                    this.deletePet(petId);
+                });
+            });
+
+            // Add event listeners for edit buttons
+            grid.querySelectorAll('.edit-pet-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const petId = btn.dataset.petId;
+                    await this.openEditModal(petId);
+                });
+            });
+
         } catch (error) {
             console.error(error);
             grid.innerHTML = '<p class="text-red-500 text-center col-span-full">Error al cargar mascotas.</p>';
@@ -132,7 +155,7 @@ export const Pets = {
 
         div.innerHTML = `
             <div class="h-48 overflow-hidden relative">
-                <img src="${pet.photo_url || `https://ui-avatars.com/api/?name=${pet.name}&background=random`}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500">
+                <img src="${pet.photo_url}" class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" alt="${pet.name}">
                 ${pet.is_premium ? '<div class="absolute top-4 right-4 bg-yellow-400 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">PREMIUM</div>' : ''}
                 <div class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xl shadow-sm">
                     ${speciesIcon}
@@ -160,7 +183,10 @@ export const Pets = {
                     <a href="${qrUrl}" target="_blank" class="p-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors" title="Abrir enlace">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                     </a>
-                    <button class="p-2 rounded-xl border border-gray-200 hover:bg-red-50 hover:text-red-500 transition-colors" onclick="import('./pets.js').then(m => m.Pets.deletePet('${pet.id}'))">
+                    <button class="p-2 rounded-xl border border-gray-200 hover:bg-blue-50 hover:text-blue-500 transition-colors edit-pet-btn" data-pet-id="${pet.id}" title="Editar">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                    </button>
+                    <button class="p-2 rounded-xl border border-gray-200 hover:bg-red-50 hover:text-red-500 transition-colors delete-pet-btn" data-pet-id="${pet.id}" title="Eliminar">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
                 </div>
@@ -179,7 +205,33 @@ export const Pets = {
             .map(cb => cb.value)
             .join(', ');
 
-        const photo_url = `https://ui-avatars.com/api/?name=${name}&background=random&size=200`;
+        // Handle photo upload to Cloudinary
+        const photoFile = formData.get('photo');
+        let photo_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&size=200`;
+
+        if (photoFile && photoFile.size > 0) {
+            try {
+                // Convert to base64
+                const base64 = await this.fileToBase64(photoFile);
+
+                // Upload to Cloudinary
+                const uploadResponse = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64 })
+                });
+
+                if (uploadResponse.ok) {
+                    const { url } = await uploadResponse.json();
+                    photo_url = url;
+                } else {
+                    console.error('Upload failed, using default avatar');
+                }
+            } catch (uploadError) {
+                console.error('Photo upload error:', uploadError);
+                UI.toast('Foto no pudo subirse, usando avatar por defecto', 'warning');
+            }
+        }
 
         const petData = {
             owner_id: Auth.user.id,
@@ -188,7 +240,7 @@ export const Pets = {
             breed: formData.get('breed'),
             birth_date: formData.get('birth_date'),
             weight: formData.get('weight'),
-            vaccines: checkedVaccines, // Send as comma separated string
+            vaccines: checkedVaccines,
             medical_info: formData.get('medical_info'),
             photo_url: photo_url
         };
@@ -226,16 +278,176 @@ export const Pets = {
         }
     },
 
+    fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    },
+
+    async openEditModal(petId) {
+        try {
+            // Find pet in already loaded data
+            const { data: pets, error } = await supabase
+                .from('pets')
+                .select('*')
+                .eq('id', petId)
+                .eq('owner_id', Auth.user.id)
+                .single();
+
+            if (error) throw error;
+            const pet = pets;
+
+            // Populate form
+            document.getElementById('edit-pet-id').value = pet.id;
+            document.getElementById('edit-name').value = pet.name;
+            document.getElementById('edit-breed').value = pet.breed || '';
+            document.getElementById('edit-birth-date').value = pet.birth_date || '';
+            document.getElementById('edit-weight').value = pet.weight || '';
+            document.getElementById('edit-medical-info').value = pet.medical_info || '';
+
+            // Set species
+            if (pet.species === 'gato') {
+                document.getElementById('edit-species-gato').checked = true;
+            } else {
+                document.getElementById('edit-species-perro').checked = true;
+            }
+
+            // Render vaccines for this species
+            this.renderVaccines(pet.species, 'edit-vaccines-container');
+
+            // Check existing vaccines
+            if (pet.vaccines) {
+                const existingVaccines = pet.vaccines.split(',').map(v => v.trim());
+                setTimeout(() => {
+                    document.querySelectorAll('#edit-vaccines-container input[type="checkbox"]').forEach(cb => {
+                        if (existingVaccines.includes(cb.value)) {
+                            cb.checked = true;
+                        }
+                    });
+                }, 100);
+            }
+
+            // Show current photo
+            if (pet.photo_url) {
+                const preview = document.getElementById('edit-preview-photo');
+                preview.src = pet.photo_url;
+                preview.classList.remove('hidden');
+            }
+
+            // Open modal
+            window.openModal('modal-edit-pet');
+
+        } catch (error) {
+            console.error('Error loading pet:', error);
+            UI.toast('Error al cargar mascota: ' + error.message, 'error');
+        }
+    },
+
+    async updatePet(formData) {
+        const petId = formData.get('pet_id');
+        const name = formData.get('name');
+        const species = formData.get('species');
+
+        // Collect checked vaccines
+        const checkedVaccines = Array.from(document.querySelectorAll('#edit-vaccines-container input[name="vaccine_opt"]:checked'))
+            .map(cb => cb.value)
+            .join(', ');
+
+        // Handle photo upload
+        const photoFile = formData.get('photo');
+        let photo_url = null;
+
+        if (photoFile && photoFile.size > 0) {
+            try {
+                const base64 = await this.fileToBase64(photoFile);
+                const uploadResponse = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: base64 })
+                });
+
+                if (uploadResponse.ok) {
+                    const { url } = await uploadResponse.json();
+                    photo_url = url;
+                }
+            } catch (uploadError) {
+                console.error('Photo upload error:', uploadError);
+            }
+        }
+
+        const petData = {
+            name: name,
+            species: species,
+            breed: formData.get('breed'),
+            birth_date: formData.get('birth_date'),
+            weight: formData.get('weight'),
+            vaccines: checkedVaccines,
+            medical_info: formData.get('medical_info')
+        };
+
+        // Only update photo if new one was uploaded
+        if (photo_url) {
+            petData.photo_url = photo_url;
+        }
+
+        try {
+            // Get session token
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session) {
+                throw new Error('No hay sesión activa');
+            }
+
+            const response = await fetch(`/api/pets?id=${petId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(petData)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Error al actualizar');
+            }
+
+            UI.toast('Mascota actualizada correctamente');
+            UI.closeModal('modal-edit-pet');
+            this.loadPets();
+
+        } catch (error) {
+            console.error('Error updating pet:', error);
+            UI.toast('Error al actualizar mascota: ' + error.message, 'error');
+        }
+    },
+
     async deletePet(id) {
         if (!confirm('¿Estás seguro de eliminar esta mascota? Esta acción es "lógica" y los datos se mantendrán internamente.')) return;
 
         try {
-            const { error } = await supabase
-                .from('pets')
-                .update({ deleted_at: new Date().toISOString() })
-                .eq('id', id);
+            // Get current session token
+            const { data: { session } } = await supabase.auth.getSession();
 
-            if (error) throw error;
+            if (!session) {
+                throw new Error('No hay sesión activa');
+            }
+
+            const response = await fetch(`/api/pets?id=${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Error al eliminar');
+            }
 
             UI.toast('Mascota eliminada correctamente');
             this.loadPets();
