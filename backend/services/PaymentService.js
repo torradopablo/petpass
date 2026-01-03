@@ -80,7 +80,8 @@ class PaymentService {
                 transaction_amount: priceArs,
                 currency_id: 'ARS'
             },
-            back_url: `https://www.google.com`, // Temporary public URL for testing
+            back_url: `${siteUrl}/index.html?status=success`,
+            notification_url: `${siteUrl}/api/webhooks`,
             status: 'pending'
         };
 
