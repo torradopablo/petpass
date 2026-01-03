@@ -69,7 +69,7 @@ export const Auth = {
                 if (elSettingAddress) elSettingAddress.value = data.address || '';
 
                 // Pass coords to settings map
-                if (data.latitude && data.longitude) {
+                if (data.latitude !== null && data.latitude !== undefined && data.longitude !== null && data.longitude !== undefined) {
                     Settings.setCoords(data.latitude, data.longitude);
                 }
             }

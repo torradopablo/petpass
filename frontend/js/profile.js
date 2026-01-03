@@ -133,8 +133,6 @@ async function sendScanNotification(petId, latitude = null, longitude = null) {
             body.longitude = longitude;
         }
 
-        console.log('[v2] Sending notification with body:', body);
-
         // Use /api/scans which handles distance and maps
         await fetch('/api/scans', {
             method: 'POST',

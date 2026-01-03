@@ -26,6 +26,7 @@
         .gradient-text {
             background: linear-gradient(135deg, #10B981 0%, #3B82F6 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -499,9 +500,12 @@
                                 class="w-4 h-4 text-brand-green border-gray-300 rounded focus:ring-brand-green">
                             <span class="text-xs font-medium text-gray-700">Usar mi dirección personal</span>
                         </label>
-                        <div id="add-pet-address-container" class="hidden">
+                        <div id="add-pet-address-container" class="hidden space-y-3">
                             <input type="text" name="address" id="add-pet-address" placeholder="Calle, Número, Ciudad"
                                 class="w-full px-4 py-2 text-sm rounded-lg border border-gray-200 focus:border-brand-green outline-none">
+                            <div id="add-pet-map" class="h-40 w-full rounded-lg border border-gray-200 z-0"></div>
+                            <p class="text-[10px] text-gray-500">📍 Arrastra el marcador para ajustar la ubicación
+                                exacta.</p>
                         </div>
                     </div>
                     <p class="text-[10px] text-gray-500 mt-2">📍 Solo recibirás alertas si el QR se escanea a más de
@@ -603,9 +607,12 @@
                                 class="w-4 h-4 text-brand-green border-gray-300 rounded focus:ring-brand-green">
                             <span class="text-xs font-medium text-gray-700">Usar mi dirección personal</span>
                         </label>
-                        <div id="edit-pet-address-container">
+                        <div id="edit-pet-address-container" class="space-y-3">
                             <input type="text" name="address" id="edit-pet-address" placeholder="Calle, Número, Ciudad"
                                 class="w-full px-4 py-2 text-sm rounded-lg border border-gray-200 focus:border-brand-green outline-none">
+                            <div id="edit-pet-map" class="h-40 w-full rounded-lg border border-gray-200 z-0"></div>
+                            <p class="text-[10px] text-gray-500">📍 Arrastra el marcador para ajustar la ubicación
+                                exacta.</p>
                         </div>
                     </div>
                 </div>

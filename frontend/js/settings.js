@@ -6,13 +6,16 @@ export const Settings = {
 
     initMap() {
         if (this.map) {
+            console.log('Settings Map already exists, re-centering to:', this.coords);
+            this.map.setView([this.coords.lat, this.coords.lng], 15);
+            this.marker.setLatLng([this.coords.lat, this.coords.lng]);
             // Force invalidateSize to fix leaflet rendering issues in hidden containers
-            setTimeout(() => this.map.invalidateSize(), 100);
+            setTimeout(() => this.map.invalidateSize(), 150);
             return;
         }
 
-        console.log('Initializing Settings Map');
-        this.map = L.map('settings-map').setView([this.coords.lat, this.coords.lng], 13);
+        console.log('Initializing Settings Map with coords:', this.coords);
+        this.map = L.map('settings-map').setView([this.coords.lat, this.coords.lng], 15);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
@@ -35,12 +38,13 @@ export const Settings = {
         });
 
         // Fix for rendering in potential HIDDEN state
-        setTimeout(() => this.map.invalidateSize(), 200);
+        setTimeout(() => this.map.invalidateSize(), 300);
     },
 
     setCoords(lat, lng) {
-        if (!lat || !lng) return;
+        if (lat === undefined || lat === null || lng === undefined || lng === null) return;
         this.coords = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        console.log('Settings coords updated to:', this.coords);
         if (this.map) {
             this.map.setView([this.coords.lat, this.coords.lng], 15);
             this.marker.setLatLng([this.coords.lat, this.coords.lng]);
