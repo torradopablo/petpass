@@ -5,21 +5,19 @@ import { supabase } from './supabaseClient.js';
 const params = new URLSearchParams(window.location.search);
 const petId = params.get('id');
 
-const PET_LOCATION_KEY = 'pet_scan_location'; // To prevent duplicate scans instantly
-
-async function loadProfile() {
+async function initProfile() {
     const elLoading = document.getElementById('loading');
     const elCard = document.getElementById('profile-card');
     const elNotFound = document.getElementById('not-found');
 
-    if (!petId) {
-        elLoading.style.display = 'none';
-        elNotFound.classList.remove('hidden');
-        return;
-    }
-
     try {
-        // Fetch Pet Data (public view)
+        if (!petId) {
+            elLoading.style.display = 'none';
+            elNotFound.classList.remove('hidden');
+            throw new Error('No pet ID provided');
+        }
+
+        // Fetch pet data
         const { data: pet, error } = await supabase
             .from('pets')
             .select(`
@@ -27,6 +25,7 @@ async function loadProfile() {
                 profiles:owner_id ( full_name, phone, email )
             `)
             .eq('id', petId)
+            .is('deleted_at', null)
             .single();
 
         if (error || !pet) throw new Error('Pet not found');
@@ -94,47 +93,62 @@ async function loadProfile() {
         elLoading.style.display = 'none';
         elCard.classList.remove('hidden');
 
-        // Request Geolocation
+        // Request Geolocation and Notify Owner
         requestLocation(pet.id);
 
     } catch (error) {
-        console.error(error);
+        console.error('Error loading pet profile:', error);
         elLoading.style.display = 'none';
         elNotFound.classList.remove('hidden');
+        const errEl = document.getElementById('error-text');
+        if (errEl) errEl.textContent = error.message || 'Mascota no encontrada';
     }
 }
 
 async function requestLocation(petId) {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+        sendScanNotification(petId);
+        return;
+    }
 
-    // Check if we already scanned recently (optional, skipping for now to ensure demo works)
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const { latitude, longitude } = position.coords;
+            await sendScanNotification(petId, latitude, longitude);
+            showMap(latitude, longitude);
+        },
+        async (error) => {
+            console.log('Location denied or error', error);
+            await sendScanNotification(petId);
+        },
+        { timeout: 10000, maximumAge: 60000 }
+    );
+}
 
-    navigator.geolocation.getCurrentPosition(async (position) => {
-        const { latitude, longitude } = position.coords;
+async function sendScanNotification(petId, latitude = null, longitude = null) {
+    try {
+        const body = { pet_id: petId };
+        if (latitude && longitude) {
+            body.latitude = latitude;
+            body.longitude = longitude;
+        }
 
-        // Send scan to Backend API (triggers notification)
+        // Use /api/scans which handles distance and maps
         await fetch('/api/scans', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                pet_id: petId,
-                latitude,
-                longitude
-            })
+            body: JSON.stringify(body)
         });
-
-        // Show map
-        showMap(latitude, longitude);
-
-    }, (error) => {
-        console.log('Location denied or error', error);
-    });
+    } catch (err) {
+        console.error('Error sending scan notification:', err);
+    }
 }
 
 function showMap(lat, lng) {
     const container = document.getElementById('map-container');
-    container.classList.remove('hidden');
+    if (!container) return;
 
+    container.classList.remove('hidden');
     const map = L.map('map-container').setView([lat, lng], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -146,5 +160,5 @@ function showMap(lat, lng) {
         .openPopup();
 }
 
-// Init
-loadProfile();
+// Start
+initProfile();

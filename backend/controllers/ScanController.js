@@ -1,4 +1,3 @@
-
 const ScanService = require('../services/ScanService');
 
 class ScanController {
@@ -7,7 +6,7 @@ class ScanController {
             const scan = await ScanService.createScan(req.body);
             res.status(201).json(scan);
         } catch (error) {
-            console.error(error);
+            console.error('ScanController Error:', error);
             res.status(500).json({ error: error.message });
         }
     }

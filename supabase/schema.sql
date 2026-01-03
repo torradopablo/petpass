@@ -7,6 +7,11 @@ create table public.profiles (
   email text unique not null,
   full_name text,
   phone text,
+  plan text default 'gratis',
+  plan_status text default 'active',
+  plan_expires_at timestamptz default (now() + interval '1 month'),
+  subscription_period text default 'monthly',
+  subscription_id text,
   created_at timestamptz default now()
 );
 

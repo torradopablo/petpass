@@ -16,7 +16,7 @@ export const UI = {
 
     // Views (Landing vs Dashboard)
     showView(id) {
-        ['landing', 'dashboard'].forEach(view => {
+        ['landing', 'dashboard', 'about', 'legal'].forEach(view => {
             const el = document.getElementById(`view-${view}`);
             if (view === id) {
                 el?.classList.remove('hidden');
@@ -50,7 +50,7 @@ export const UI = {
         // Create toast element on the fly
         const div = document.createElement('div');
         div.className = `fixed top-4 right-4 z-[70] px-6 py-3 rounded-xl shadow-xl transform transition-all duration-300 translate-y-[-20px] opacity-0 flex items-center gap-3 ${type === 'success' ? 'bg-green-500 text-white' :
-                type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-800 text-white'
+            type === 'error' ? 'bg-red-500 text-white' : 'bg-gray-800 text-white'
             }`;
         div.innerHTML = `
             <span class="font-bold">${message}</span>

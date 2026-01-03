@@ -11,6 +11,9 @@ export const Pets = {
     },
 
     selectedSpecies: 'perro', // Default
+    maps: { add: null, edit: null },
+    markers: { add: null, edit: null },
+    coords: { add: { lat: -34.6037, lng: -58.3816 }, edit: { lat: -34.6037, lng: -58.3816 } },
 
     async init() {
         this.bindEvents();
@@ -22,6 +25,46 @@ export const Pets = {
         addPetForm?.addEventListener('submit', async (e) => {
             e.preventDefault();
             await this.addPet(new FormData(addPetForm));
+        });
+
+        // Toggle address input in Add Modal
+        document.getElementById('add-pet-same-address')?.addEventListener('change', (e) => {
+            const container = document.getElementById('add-pet-address-container');
+            if (e.target.checked) {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+                this.initMap('add', 'add-pet-map');
+            }
+        });
+
+        // Sync address with map in Add Modal
+        document.getElementById('add-pet-address')?.addEventListener('blur', async (e) => {
+            const addr = e.target.value;
+            if (addr) {
+                const coords = await this.geocode(addr);
+                if (coords) this.setCoords('add', coords.lat, coords.lon);
+            }
+        });
+
+        // Toggle address input in Edit Modal
+        document.getElementById('edit-pet-same-address')?.addEventListener('change', (e) => {
+            const container = document.getElementById('edit-pet-address-container');
+            if (e.target.checked) {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+                this.initMap('edit', 'edit-pet-map');
+            }
+        });
+
+        // Sync address with map in Edit Modal
+        document.getElementById('edit-pet-address')?.addEventListener('blur', async (e) => {
+            const addr = e.target.value;
+            if (addr) {
+                const coords = await this.geocode(addr);
+                if (coords) this.setCoords('edit', coords.lat, coords.lon);
+            }
         });
 
         // Edit pet form handler
@@ -245,6 +288,24 @@ export const Pets = {
             photo_url: photo_url
         };
 
+        // Handle Address
+        const useSameAddress = document.getElementById('add-pet-same-address').checked;
+        if (useSameAddress) {
+            // Get user address from profiles
+            const { data: profile } = await supabase.from('profiles').select('address, latitude, longitude').eq('id', Auth.user.id).single();
+            if (profile) {
+                petData.address = profile.address;
+                petData.latitude = profile.latitude;
+                petData.longitude = profile.longitude;
+            }
+        } else {
+            const customAddress = formData.get('address');
+            petData.address = customAddress;
+            // Use map coordinates if available/moved
+            petData.latitude = this.coords.add.lat;
+            petData.longitude = this.coords.add.lng;
+        }
+
         try {
             UI.setLoading(true, btnSubmit.id || 'btn-submit-pet');
 
@@ -337,6 +398,28 @@ export const Pets = {
                 preview.classList.remove('hidden');
             }
 
+            // Population of address
+            const sameAddrCheck = document.getElementById('edit-pet-same-address');
+            const addrInput = document.getElementById('edit-pet-address');
+            const addrContainer = document.getElementById('edit-pet-address-container');
+
+            // Fetch user profile to compare
+            const { data: profile } = await supabase.from('profiles').select('address').eq('id', Auth.user.id).single();
+
+            if (pet.address === profile?.address) {
+                sameAddrCheck.checked = true;
+                addrContainer.classList.add('hidden');
+            } else {
+                sameAddrCheck.checked = false;
+                addrContainer.classList.remove('hidden');
+                addrInput.value = pet.address || '';
+                // Init map for edit with pet coords
+                if (pet.latitude && pet.longitude) {
+                    this.coords.edit = { lat: pet.latitude, lng: pet.longitude };
+                }
+                setTimeout(() => this.initMap('edit', 'edit-pet-map'), 100);
+            }
+
             // Open modal
             window.openModal('modal-edit-pet');
 
@@ -387,6 +470,24 @@ export const Pets = {
             vaccines: checkedVaccines,
             medical_info: formData.get('medical_info')
         };
+
+        // Handle Address
+        const sameAddrCheck = document.getElementById('edit-pet-same-address');
+        const useSameAddress = sameAddrCheck ? sameAddrCheck.checked : false;
+
+        if (useSameAddress) {
+            const { data: profile } = await supabase.from('profiles').select('address, latitude, longitude').eq('id', Auth.user.id).single();
+            if (profile) {
+                petData.address = profile.address;
+                petData.latitude = profile.latitude;
+                petData.longitude = profile.longitude;
+            }
+        } else {
+            const customAddress = formData.get('address');
+            petData.address = customAddress;
+            petData.latitude = this.coords.edit.lat;
+            petData.longitude = this.coords.edit.lng;
+        }
 
         // Only update photo if new one was uploaded
         if (photo_url) {
@@ -456,6 +557,63 @@ export const Pets = {
             console.error(error);
             UI.toast('Error al eliminar: ' + error.message, 'error');
         }
+    },
+
+    initMap(type, containerId) {
+        const coords = this.coords[type];
+        if (this.maps[type]) {
+            this.maps[type].setView([coords.lat, coords.lng], 15);
+            this.markers[type].setLatLng([coords.lat, coords.lng]);
+            setTimeout(() => this.maps[type].invalidateSize(), 150);
+            return;
+        }
+
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        this.maps[type] = L.map(containerId).setView([coords.lat, coords.lng], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(this.maps[type]);
+
+        this.markers[type] = L.marker([coords.lat, coords.lng], {
+            draggable: true
+        }).addTo(this.maps[type]);
+
+        this.markers[type].on('dragend', () => {
+            const pos = this.markers[type].getLatLng();
+            this.coords[type] = { lat: pos.lat, lng: pos.lng };
+        });
+
+        this.maps[type].on('click', (e) => {
+            this.markers[type].setLatLng(e.latlng);
+            this.coords[type] = { lat: e.latlng.lat, lng: e.latlng.lng };
+        });
+
+        setTimeout(() => this.maps[type].invalidateSize(), 300);
+    },
+
+    setCoords(type, lat, lng) {
+        if (lat === undefined || lat === null || lng === undefined || lng === null) return;
+        this.coords[type] = { lat: parseFloat(lat), lng: parseFloat(lng) };
+        if (this.maps[type]) {
+            this.maps[type].setView([this.coords[type].lat, this.coords[type].lng], 15);
+            this.markers[type].setLatLng([this.coords[type].lat, this.coords[type].lng]);
+        }
+    },
+
+    async geocode(address) {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`);
+            const data = await res.json();
+            if (data.length > 0) {
+                return { lat: data[0].lat, lon: data[0].lon };
+            }
+        } catch (e) {
+            console.error('Geocoding error:', e);
+        }
+        return null;
     }
 };
 
