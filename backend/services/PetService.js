@@ -1,10 +1,22 @@
-
 const PetRepository = require('../repositories/PetRepository');
+const ProfileRepository = require('../repositories/ProfileRepository');
+const Plans = require('../config/Plans');
 
 class PetService {
     async createPet(petData) {
-        // Validation logic can go here
+        // Validation logic
         if (!petData.name) throw new Error('Name is required');
+
+        // Check plan limits
+        const profile = await ProfileRepository.findById(petData.owner_id);
+        const planKey = (profile.plan || 'gratis').toUpperCase();
+        const plan = Plans[planKey] || Plans.GRATIS;
+
+        const currentPets = await PetRepository.findByOwner(petData.owner_id);
+        if (currentPets.length >= plan.maxPets) {
+            throw new Error(`Has alcanzado el límite de ${plan.maxPets} mascotas para tu plan ${plan.name}. Mejora tu plan para agregar más.`);
+        }
+
         return await PetRepository.create(petData);
     }
 

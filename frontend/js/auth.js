@@ -6,12 +6,14 @@ export const Auth = {
     user: null,
 
     async init() {
-        // Check active session
         const { data: { session } } = await supabase.auth.getSession();
+        this.session = session;
         this.user = session?.user || null;
+        console.log('Auth initialized. User:', this.user?.email || 'None');
 
         // Listen for auth changes
         supabase.auth.onAuthStateChange((_event, session) => {
+            this.session = session;
             this.user = session?.user || null;
             if (this.user) {
                 UI.showView('dashboard');
@@ -105,6 +107,41 @@ export const Auth = {
 
             if (elName) elName.textContent = displayName;
             if (elAvatar) elAvatar.src = displayAvatar;
+
+            // Display Plan Info
+            const currentPlan = data?.plan || 'gratis';
+            const planStatus = data?.plan_status || 'active';
+            const expiresAt = data?.plan_expires_at;
+
+            // Highlight current plan in UI
+            document.querySelectorAll('[data-plan-card]').forEach(card => {
+                const planId = card.dataset.planCard;
+                const btn = card.querySelector('button');
+
+                if (planId === currentPlan) {
+                    btn.textContent = 'Tu Plan Actual';
+                    btn.disabled = true;
+                    btn.classList.add('bg-gray-100', 'text-gray-400');
+                    btn.classList.remove('bg-brand-green', 'bg-white', 'text-white', 'text-gray-900');
+                    card.classList.add('ring-4', 'ring-brand-green/20');
+                } else {
+                    card.classList.remove('ring-4', 'ring-brand-green/20');
+                }
+            });
+
+            // Show cancellation button if subscription_id exists
+            const cancelSection = document.getElementById('subscription-cancel-section');
+            if (cancelSection) {
+                if (data?.subscription_id && planStatus === 'active') {
+                    cancelSection.classList.remove('hidden');
+                    const elExpiry = document.getElementById('plan-expiry-date');
+                    if (elExpiry && expiresAt) {
+                        elExpiry.textContent = new Date(expiresAt).toLocaleDateString();
+                    }
+                } else {
+                    cancelSection.classList.add('hidden');
+                }
+            }
 
         } catch (err) {
             console.error('Profile load error:', err);

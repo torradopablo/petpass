@@ -1,23 +1,27 @@
 
-import { loadMercadoPago } from "https://sdk.mercadopago.com/js/v2";
 import { Auth } from './auth.js';
 import { UI } from './ui.js';
-
-// NOTE: MP_PUBLIC_KEY placeholder
-const MP_PUBLIC_KEY = window.env?.MP_PUBLIC_KEY;
 
 export const Payments = {
     mp: null,
 
     async init() {
-        await loadMercadoPago();
-        this.mp = new window.MercadoPago(MP_PUBLIC_KEY);
+        const key = window.env?.MP_PUBLIC_KEY;
+        if (!key) {
+            console.error('MP_PUBLIC_KEY not found in window.env');
+            throw new Error('Configuración de pago incompleta');
+        }
+        if (!window.MercadoPago) {
+            console.error('Mercado Pago SDK not loaded');
+            throw new Error('Error al cargar Mercado Pago');
+        }
+        this.mp = new window.MercadoPago(key);
     },
 
     async createPreference(orderData) {
         // Call Backend to create preference
         try {
-            const response = await fetch('/api/payments/create-preference', {
+            const response = await fetch('/api/payments', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -26,10 +30,13 @@ export const Payments = {
                 body: JSON.stringify(orderData)
             });
 
-            if (!response.ok) throw new Error('Error creating payment preference');
-
-            const { id } = await response.json();
-            return id;
+            const data = await response.json();
+            if (!response.ok) {
+                const error = new Error(data.message || 'Error creating payment preference');
+                error.details = data;
+                throw error;
+            }
+            return data;
         } catch (error) {
             console.error(error);
             UI.toast('Error iniciando pago', 'error');
@@ -48,34 +55,71 @@ export const Payments = {
         });
     },
 
-    async subscribe(plan) {
-        const prices = {
-            'basic': 4999,
-            'premium': 9999
-        };
-        const title = `Suscripción PetPass ${plan.charAt(0).toUpperCase() + plan.slice(1)}`;
+    async subscribe(plan, period = 'monthly') {
+        const title = `Suscripción PetPass ${plan.charAt(0).toUpperCase() + plan.slice(1)} (${period === 'monthly' ? 'Mensual' : 'Anual'})`;
 
-        // Create Preference for Subscription (Mocking as one-time for prototype)
         try {
+            UI.toast('Preparando pago...', 'info');
+
+            // Defensive check for user session
+            if (!Auth.user && !Auth.session?.user) {
+                console.warn('Auth user is null, attempting to re-init...');
+                await Auth.init();
+            }
+
+            const user = Auth.user || Auth.session?.user;
+            if (!user) {
+                throw new Error('Debes iniciar sesión para suscribirte');
+            }
+
             const orderData = {
-                items: [{
-                    title: title,
-                    unit_price: prices[plan],
-                    quantity: 1,
-                    currency_id: 'ARS'
-                }],
+                plan: plan,
+                period: period,
+                title: title,
                 payer: {
-                    email: Auth.user.email
-                },
-                external_reference: `sub_${plan}_${Auth.user.id}` // To track in webhook
+                    email: user.email
+                }
             };
 
-            const preferenceId = await this.createPreference(orderData);
-            await this.checkout(preferenceId);
+            console.log('Subscribe initiating...', orderData);
+            const data = await this.createPreference(orderData);
+            console.log('Preference data received:', data);
+
+            if (data.init_point) {
+                console.log('Redirecting to MP:', data.init_point);
+                window.location.href = data.init_point;
+            } else if (data.id) {
+                console.log('Opening MP checkout modal for ID:', data.id);
+                await this.checkout(data.id);
+            } else {
+                throw new Error('No se recibió ID ni init_point de Mercado Pago');
+            }
 
         } catch (error) {
+            console.error('Subscription Error Details:', error);
+            const msg = error.message || 'Error al procesar suscripción';
+            UI.toast(msg, 'error');
+        }
+    },
+
+    async cancelSubscription() {
+        try {
+            UI.toast('Cancelando suscripción...', 'info');
+            const response = await fetch('/api/payments', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${Auth.session?.access_token}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Error al cancelar');
+
+            UI.toast('Suscripción cancelada correctamente');
+            // Reload page or update UI
+            setTimeout(() => location.reload(), 1500);
+        } catch (error) {
             console.error(error);
-            UI.toast('Error al procesar suscripción', 'error');
+            UI.toast('Error al cancelar suscripción', 'error');
         }
     }
 };

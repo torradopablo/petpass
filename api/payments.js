@@ -8,6 +8,8 @@ module.exports = async (req, res) => {
 
         if (req.method === 'POST') {
             return await PaymentController.createPreference(req, res);
+        } else if (req.method === 'DELETE') {
+            return await PaymentController.cancelSubscription(req, res);
         }
         res.status(405).json({ error: 'Method not allowed' });
     } catch (error) {

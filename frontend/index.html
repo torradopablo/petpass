@@ -11,6 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
     <style>
         body {
             font-family: 'Outfit', sans-serif;
@@ -261,55 +262,143 @@
                                 </div>
 
                                 <h3 class="text-lg font-bold mb-4">Mejorar Plan</h3>
+
+                                <!-- Billing Cycle Toggle -->
+                                <div
+                                    class="flex items-center justify-center gap-4 mb-8 bg-gray-50 p-2 rounded-2xl w-fit mx-auto border border-gray-100">
+                                    <span id="label-monthly" class="text-sm font-bold text-brand-green">Mensual</span>
+                                    <button onclick="toggleBillingCycle()" id="billing-toggle"
+                                        class="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors focus:outline-none">
+                                        <span id="billing-toggle-dot"
+                                            class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform translate-x-1"></span>
+                                    </button>
+                                    <span id="label-annual" class="text-sm font-medium text-gray-400">Anual <span
+                                            class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full ml-1">-20%</span></span>
+                                </div>
+
                                 <div class="grid md:grid-cols-3 gap-6">
-                                    <!-- Free Plan -->
-                                    <div class="border rounded-xl p-6 relative opacity-75">
+                                    <!-- Gratis / Trial Plan -->
+                                    <div data-plan-card="gratis"
+                                        class="border rounded-2xl p-6 relative bg-white shadow-sm border-gray-100">
+                                        <div
+                                            class="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mb-4 text-2xl">
+                                            🌱</div>
                                         <h4 class="font-bold text-gray-900">Gratuito</h4>
-                                        <p class="text-2xl font-bold mt-2">$0 <span
-                                                class="text-sm font-normal text-gray-500">/mes</span></p>
-                                        <ul class="mt-4 space-y-2 text-sm text-gray-600">
-                                            <li>✅ 1 Mascota</li>
-                                            <li>✅ QR Básico</li>
-                                            <li>❌ Sin historial GPS</li>
+                                        <p class="text-3xl font-bold mt-2">$0 <span
+                                                class="text-sm font-normal text-gray-400">USD</span></p>
+                                        <p class="text-xs text-gray-500 mt-1">Prueba por 30 días</p>
+                                        <ul class="mt-6 space-y-3 text-sm text-gray-600">
+                                            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-green"
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg> Hasta 2 Mascotas</li>
+                                            <li class="flex items-center gap-2 text-gray-400"><svg class="w-4 h-4"
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg> Alertas de Escaneo</li>
+                                            <li class="flex items-center gap-2 text-gray-400"><svg class="w-4 h-4"
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg> Mapa de Tracking</li>
                                         </ul>
                                         <button disabled
-                                            class="w-full mt-6 py-2 rounded-lg bg-gray-100 text-gray-400 font-bold cursor-not-allowed">Plan
+                                            class="w-full mt-8 py-3 rounded-xl bg-gray-100 text-gray-400 font-bold cursor-not-allowed">Plan
                                             Actual</button>
                                     </div>
 
-                                    <!-- Basic Plan -->
-                                    <div
-                                        class="border rounded-xl p-6 relative hover:shadow-lg transition-shadow border-brand-green">
+                                    <!-- Básico Plan -->
+                                    <div data-plan-card="basico"
+                                        class="border-2 rounded-2xl p-6 relative bg-white shadow-xl border-brand-green ring-4 ring-green-50">
                                         <div
-                                            class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-brand-green text-white px-3 py-0.5 rounded-full text-xs font-bold">
-                                            Popular</div>
+                                            class="absolute -top-4 right-6 bg-brand-green text-white px-4 py-1 rounded-full text-xs font-bold shadow-lg">
+                                            RECOMENDADO</div>
+                                        <div
+                                            class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center mb-4 text-2xl">
+                                            🛡️</div>
                                         <h4 class="font-bold text-gray-900">Básico</h4>
-                                        <p class="text-2xl font-bold mt-2">$4.999 <span
-                                                class="text-sm font-normal text-gray-500">/mes</span></p>
-                                        <ul class="mt-4 space-y-2 text-sm text-gray-600">
-                                            <li>✅ Hasta 3 Mascotas</li>
-                                            <li>✅ QR Personalizado</li>
-                                            <li>✅ Historial GPS 24h</li>
+                                        <div class="flex items-baseline gap-1 mt-2">
+                                            <span class="text-3xl font-bold price-val" data-monthly="5"
+                                                data-annual="50">$5</span>
+                                            <span class="text-sm font-normal text-gray-400">USD</span>
+                                            <span class="text-xs font-normal text-gray-400 billing-period">/mes</span>
+                                        </div>
+                                        <ul class="mt-6 space-y-3 text-sm text-gray-600">
+                                            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-green"
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg> Hasta 2 Mascotas</li>
+                                            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-green"
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg> Alertas Geográficas</li>
+                                            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-green"
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg> Historial de Posiciones</li>
                                         </ul>
-                                        <button
-                                            onclick="import('./js/payments.js').then(m => m.Payments.subscribe('basic'))"
-                                            class="w-full mt-6 py-2 rounded-lg bg-brand-green text-white font-bold hover:bg-green-600 transition-colors">Seleccionar</button>
+                                        <button onclick="subscribeToPlan('basico')"
+                                            class="w-full mt-8 py-3 rounded-xl bg-brand-green text-white font-bold hover:bg-green-600 shadow-lg shadow-green-500/30 transition-all hover:scale-[1.02]">Seleccionar</button>
                                     </div>
 
                                     <!-- Premium Plan -->
-                                    <div
-                                        class="border rounded-xl p-6 relative hover:shadow-lg transition-shadow bg-gradient-to-br from-gray-900 to-gray-800 text-white">
-                                        <h4 class="font-bold text-white">Premium</h4>
-                                        <p class="text-2xl font-bold mt-2">$9.999 <span
-                                                class="text-sm font-normal text-gray-400">/mes</span></p>
-                                        <ul class="mt-4 space-y-2 text-sm text-gray-300">
-                                            <li>✅ Mascotas Ilimitadas</li>
-                                            <li>✅ Rastreo en Tiempo Real</li>
-                                            <li>✅ Respaldo Médico</li>
+                                    <div data-plan-card="premium"
+                                        class="border rounded-2xl p-6 relative bg-gray-900 text-white shadow-lg overflow-hidden">
+                                        <div
+                                            class="absolute top-0 right-0 w-32 h-32 bg-brand-blue opacity-10 rounded-full -mr-16 -mt-16 blur-3xl">
+                                        </div>
+                                        <div
+                                            class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4 text-2xl">
+                                            💎</div>
+                                        <h4 class="font-bold">Premium</h4>
+                                        <div class="flex items-baseline gap-1 mt-2">
+                                            <span class="text-3xl font-bold price-val" data-monthly="10"
+                                                data-annual="100">$10</span>
+                                            <span class="text-sm font-normal text-gray-400">USD</span>
+                                            <span class="text-xs font-normal text-gray-400 billing-period">/mes</span>
+                                        </div>
+                                        <ul class="mt-6 space-y-3 text-sm text-gray-300">
+                                            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-blue"
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg> Hasta 5 Mascotas</li>
+                                            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-blue"
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg> Alertas Multi-contacto</li>
+                                            <li class="flex items-center gap-2"><svg class="w-4 h-4 text-brand-blue"
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg> Soporte Prioritario</li>
                                         </ul>
+                                        <button onclick="subscribeToPlan('premium')"
+                                            class="w-full mt-8 py-3 rounded-xl bg-white text-gray-900 font-bold hover:bg-gray-100 transition-all hover:scale-[1.02]">Seleccionar</button>
+                                    </div>
+                                </div>
+
+                                <!-- Subscription Management Section -->
+                                <div id="subscription-cancel-section"
+                                    class="mt-8 p-6 bg-red-50 rounded-2xl border border-red-100 hidden">
+                                    <div class="flex items-center justify-between gap-4 text-left">
+                                        <div>
+                                            <h4 class="font-bold text-red-900">Gestionar Suscripción</h4>
+                                            <p class="text-sm text-red-700">Tu suscripción está activa y se renovará el
+                                                <span id="plan-expiry-date" class="font-bold">--/--/--</span>.
+                                            </p>
+                                        </div>
                                         <button
-                                            onclick="import('./js/payments.js').then(m => m.Payments.subscribe('premium'))"
-                                            class="w-full mt-6 py-2 rounded-lg bg-white text-gray-900 font-bold hover:bg-gray-100 transition-colors">Seleccionar</button>
+                                            onclick="import('./js/payments.js').then(m => m.Payments.cancelSubscription())"
+                                            class="px-6 py-2 bg-white text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all shadow-sm">
+                                            Cancelar Suscripción
+                                        </button>
                                     </div>
                                 </div>
 
@@ -666,6 +755,56 @@
         }
 
         document.getElementById('btn-login').addEventListener('click', () => openModal('modal-login'));
+
+        // Subscription helpers
+        let currentBillingCycle = 'monthly';
+
+        function toggleBillingCycle() {
+            const toggle = document.getElementById('billing-toggle');
+            const dot = document.getElementById('billing-toggle-dot');
+            const labelMonthly = document.getElementById('label-monthly');
+            const labelAnnual = document.getElementById('label-annual');
+            const priceVals = document.querySelectorAll('.price-val');
+            const periodLabels = document.querySelectorAll('.billing-period');
+
+            if (currentBillingCycle === 'monthly') {
+                currentBillingCycle = 'annual';
+                toggle.classList.remove('bg-gray-200');
+                toggle.classList.add('bg-brand-green');
+                dot.classList.add('translate-x-6');
+                dot.classList.remove('translate-x-1');
+                labelMonthly.classList.remove('text-brand-green', 'font-bold');
+                labelMonthly.classList.add('text-gray-400', 'font-medium');
+                labelAnnual.classList.add('text-brand-green', 'font-bold');
+                labelAnnual.classList.remove('text-gray-400', 'font-medium');
+
+                priceVals.forEach(v => v.textContent = '$' + v.dataset.annual);
+                periodLabels.forEach(l => l.textContent = '/año');
+            } else {
+                currentBillingCycle = 'monthly';
+                toggle.classList.add('bg-gray-200');
+                toggle.classList.remove('bg-brand-green');
+                dot.classList.remove('translate-x-6');
+                dot.classList.add('translate-x-1');
+                labelAnnual.classList.remove('text-brand-green', 'font-bold');
+                labelAnnual.classList.add('text-gray-400', 'font-medium');
+                labelMonthly.classList.add('text-brand-green', 'font-bold');
+                labelMonthly.classList.remove('text-gray-400', 'font-medium');
+
+                priceVals.forEach(v => v.textContent = '$' + v.dataset.monthly);
+                periodLabels.forEach(l => l.textContent = '/mes');
+            }
+        }
+
+        async function subscribeToPlan(plan) {
+            console.log('subscribeToPlan called with:', plan, currentBillingCycle);
+            try {
+                const { Payments } = await import('./js/payments.js');
+                Payments.subscribe(plan, currentBillingCycle);
+            } catch (e) {
+                console.error('Import error:', e);
+            }
+        }
     </script>
 </body>
 
