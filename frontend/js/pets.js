@@ -24,6 +24,20 @@ export const Pets = {
             await this.addPet(new FormData(addPetForm));
         });
 
+        // Toggle address input in Add Modal
+        document.getElementById('add-pet-same-address')?.addEventListener('change', (e) => {
+            const container = document.getElementById('add-pet-address-container');
+            if (e.target.checked) container.classList.add('hidden');
+            else container.classList.remove('hidden');
+        });
+
+        // Toggle address input in Edit Modal
+        document.getElementById('edit-pet-same-address')?.addEventListener('change', (e) => {
+            const container = document.getElementById('edit-pet-address-container');
+            if (e.target.checked) container.classList.add('hidden');
+            else container.classList.remove('hidden');
+        });
+
         // Edit pet form handler
         const editPetForm = document.getElementById('edit-pet-form');
         editPetForm?.addEventListener('submit', async (e) => {
@@ -245,6 +259,28 @@ export const Pets = {
             photo_url: photo_url
         };
 
+        // Handle Address
+        const useSameAddress = document.getElementById('add-pet-same-address').checked;
+        if (useSameAddress) {
+            // Get user address from profiles
+            const { data: profile } = await supabase.from('profiles').select('address, latitude, longitude').eq('id', Auth.user.id).single();
+            if (profile) {
+                petData.address = profile.address;
+                petData.latitude = profile.latitude;
+                petData.longitude = profile.longitude;
+            }
+        } else {
+            const customAddress = formData.get('address');
+            petData.address = customAddress;
+            if (customAddress) {
+                const coords = await this.geocode(customAddress);
+                if (coords) {
+                    petData.latitude = coords.lat;
+                    petData.longitude = coords.lon;
+                }
+            }
+        }
+
         try {
             UI.setLoading(true, btnSubmit.id || 'btn-submit-pet');
 
@@ -337,6 +373,23 @@ export const Pets = {
                 preview.classList.remove('hidden');
             }
 
+            // Population of address
+            const sameAddrCheck = document.getElementById('edit-pet-same-address');
+            const addrInput = document.getElementById('edit-pet-address');
+            const addrContainer = document.getElementById('edit-pet-address-container');
+
+            // Fetch user profile to compare
+            const { data: profile } = await supabase.from('profiles').select('address').eq('id', Auth.user.id).single();
+
+            if (pet.address === profile?.address) {
+                sameAddrCheck.checked = true;
+                addrContainer.classList.add('hidden');
+            } else {
+                sameAddrCheck.checked = false;
+                addrContainer.classList.remove('hidden');
+                addrInput.value = pet.address || '';
+            }
+
             // Open modal
             window.openModal('modal-edit-pet');
 
@@ -387,6 +440,29 @@ export const Pets = {
             vaccines: checkedVaccines,
             medical_info: formData.get('medical_info')
         };
+
+        // Handle Address
+        const sameAddrCheck = document.getElementById('edit-pet-same-address');
+        const useSameAddress = sameAddrCheck ? sameAddrCheck.checked : false;
+
+        if (useSameAddress) {
+            const { data: profile } = await supabase.from('profiles').select('address, latitude, longitude').eq('id', Auth.user.id).single();
+            if (profile) {
+                petData.address = profile.address;
+                petData.latitude = profile.latitude;
+                petData.longitude = profile.longitude;
+            }
+        } else {
+            const customAddress = formData.get('address');
+            petData.address = customAddress;
+            if (customAddress) {
+                const coords = await this.geocode(customAddress);
+                if (coords) {
+                    petData.latitude = coords.lat;
+                    petData.longitude = coords.lon;
+                }
+            }
+        }
 
         // Only update photo if new one was uploaded
         if (photo_url) {

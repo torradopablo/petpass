@@ -1,41 +1,88 @@
-
+console.log('[v2] [INIT] ScanService.js loaded');
 const ScanRepository = require('../repositories/ScanRepository');
 const PetRepository = require('../repositories/PetRepository');
 const Mailer = require('../utils/mailer');
 
 class ScanService {
     async createScan(scanData) {
+        console.log('[v2] Creating scan for pet:', scanData.pet_id);
         // 1. Save scan
         const scan = await ScanRepository.create(scanData);
+        console.log('[v2] Scan saved in DB');
 
         // 2. Fetch pet and owner info for notification
-        // We use the Service Role (via Repository) to access owner data
-        const { data: pet, error } = await PetRepository.findByIdWithOwner(scanData.pet_id);
+        let pet;
+        try {
+            pet = await PetRepository.findByIdWithOwner(scanData.pet_id);
+        } catch (error) {
+            console.error('[v2] Error fetching pet/owner from DB:', error);
+            return scan;
+        }
+
+        if (!pet) {
+            console.warn('[v2] Pet not found for ID:', scanData.pet_id);
+            return scan;
+        }
+
+        console.log('[v2] Found pet:', pet.name);
+        console.log('[v2] Pet Profile Data:', JSON.stringify(pet.profiles, null, 2));
+        console.log('[v2] Pet Home Coords:', { lat: pet.latitude, lng: pet.longitude });
 
         if (pet && pet.profiles && pet.profiles.email) {
-            const googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${scanData.latitude},${scanData.longitude}`;
-            await Mailer.sendEmail(
-                pet.profiles.email,
-                `¡Alerta! ${pet.name} fue escaneado`,
-                `
-                <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
-                    <h1 style="color: #ef4444;">🚨 Tu mascota ha sido escaneada</h1>
-                    <p>Hola <strong>${pet.profiles.full_name || 'Dueño'}</strong>,</p>
-                    <p>Alguien acaba de escanear el código QR de <strong>${pet.name}</strong>.</p>
-                    
-                    <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                        <p style="margin: 0;"><strong>📍 Ubicación detectada:</strong></p>
-                        <a href="${googleMapsLink}" style="display: inline-block; margin-top: 10px; background: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">Ver en Google Maps</a>
-                    </div>
+            const scanLat = parseFloat(scanData.latitude);
+            const scanLon = parseFloat(scanData.longitude);
 
-                    <p style="color: #6b7280; font-size: 14px;">Si no fuiste tú, por favor revisa la ubicación inmediatamente.</p>
-                </div>
-                `
+            console.log(`[v2] Home: ${pet.latitude},${pet.longitude} | Scan: ${scanLat},${scanLon}`);
+
+            // Check distance if pet has home coordinates
+            if (pet.latitude && pet.longitude && !isNaN(scanLat) && !isNaN(scanLon)) {
+                const distance = this.calculateDistance(
+                    pet.latitude, pet.longitude,
+                    scanLat, scanLon
+                );
+
+                console.log(`[v2] Calculated distance: ${distance.toFixed(3)} km`);
+
+                // If distance is less than 100 meters (0.1 km), do not notify
+                if (distance < 0.1) {
+                    console.log(`[v2] WITHIN 100m RANGE. Skipping notification.`);
+                    return scan;
+                }
+            } else {
+                console.log('[v2] Missing coordinates for distance check. Proceeding with notification.');
+            }
+
+            console.log('[v2] Triggering email notification...');
+            await Mailer.sendQRScanNotification(
+                pet.profiles.email,
+                pet.name,
+                scanLat,
+                scanLon
             );
+        } else {
+            console.warn('[v2] Missing pet/owner data for notification:', {
+                hasPet: !!pet,
+                hasProfiles: !!pet?.profiles,
+                hasEmail: !!pet?.profiles?.email
+            });
         }
 
         return scan;
     }
+
+    // Haversine formula to calculate distance in KM
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Earth's radius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
 }
 
 module.exports = new ScanService();
