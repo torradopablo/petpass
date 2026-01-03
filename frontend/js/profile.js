@@ -36,6 +36,22 @@ async function loadProfile() {
         document.getElementById('pet-photo').src = pet.photo_url || `https://ui-avatars.com/api/?name=${pet.name}`;
         document.getElementById('pet-info').textContent = pet.medical_info || 'Sin información adicional.';
 
+        // Calc Age
+        if (pet.birth_date) {
+            const birth = new Date(pet.birth_date);
+            const today = new Date();
+            let years = today.getFullYear() - birth.getFullYear();
+            let months = today.getMonth() - birth.getMonth();
+            if (months < 0 || (months === 0 && today.getDate() < birth.getDate())) {
+                years--;
+                months += 12;
+            }
+            const ageText = years > 0 ? `${years} años` : `${months} meses`;
+            document.getElementById('pet-age').textContent = ageText;
+        } else {
+            document.getElementById('pet-age').textContent = pet.age || 'Edad desconocida';
+        }
+
         if (pet.is_premium) {
             document.getElementById('pet-premium-badge').classList.remove('hidden');
         }
@@ -72,12 +88,16 @@ async function requestLocation(petId) {
     navigator.geolocation.getCurrentPosition(async (position) => {
         const { latitude, longitude } = position.coords;
 
-        // Send scan to Supabase
-        await supabase.from('scans').insert([{
-            pet_id: petId,
-            latitude,
-            longitude
-        }]);
+        // Send scan to Backend API (triggers notification)
+        await fetch('/api/scans', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                pet_id: petId,
+                latitude,
+                longitude
+            })
+        });
 
         // Show map
         showMap(latitude, longitude);

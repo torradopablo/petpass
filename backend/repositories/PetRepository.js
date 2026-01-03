@@ -24,6 +24,22 @@ class PetRepository {
         if (error) throw error;
         return data;
     }
+
+    async findByIdWithOwner(id) {
+        // Requires a foreign key relationship between pets.owner_id and profiles.id (or auth.users)
+        // Adjust 'profiles' to the actual table name if different
+        const { data, error } = await supabase
+            .from('pets')
+            .select(`
+                *,
+                profiles:owner_id ( email, full_name )
+            `)
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
 }
 
 module.exports = new PetRepository();

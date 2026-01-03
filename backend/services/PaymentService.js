@@ -1,35 +1,32 @@
+const { MercadoPagoConfig, Preference } = require('mercadopago');
 
-// Mock Service for Payment Logic
-// Real implementation would use mercadopago/dx-nodejs
-
-const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
 
 class PaymentService {
-    constructor() {
-        // this.mercadopago = ... 
-    }
-
     async createPreference(items, payer, externalReference) {
-        // Mock MP request
-        // In real app: mercadopago.preferences.create(...)
+        const preference = new Preference(client);
 
-        const preference = {
-            items,
-            payer,
-            external_reference: externalReference,
-            back_urls: {
-                success: `${process.env.SITE_URL}/dashboard?status=success`,
-                failure: `${process.env.SITE_URL}/dashboard?status=failure`,
-                pending: `${process.env.SITE_URL}/dashboard?status=pending`
-            },
-            auto_return: 'approved'
-        };
+        const response = await preference.create({
+            body: {
+                items: items,
+                payer: {
+                    email: payer.email
+                },
+                external_reference: externalReference,
+                back_urls: {
+                    success: `${process.env.SITE_URL || 'http://localhost:3000'}/frontend/index.html?status=success`,
+                    failure: `${process.env.SITE_URL || 'http://localhost:3000'}/frontend/index.html?status=failure`,
+                    pending: `${process.env.SITE_URL || 'http://localhost:3000'}/frontend/index.html?status=pending`
+                },
+                auto_return: 'approved',
+                notification_url: `${process.env.SITE_URL || 'https://tu-dominio.vercel.app'}/api/webhooks`
+            }
+        });
 
-        // For demo purposes we simulate a preference ID return
-        console.log('Creating MP preference:', preference);
         return {
-            id: 'mock_preference_id_' + Date.now(),
-            init_point: 'https://sandbox.mercadopago.com.ar/checkout/v1/redirect?pref_id=...'
+            id: response.id,
+            init_point: response.init_point,
+            sandbox_init_point: response.sandbox_init_point
         };
     }
 }
