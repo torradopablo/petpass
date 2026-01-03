@@ -5,17 +5,30 @@ export const Settings = {
     coords: { lat: -34.6037, lng: -58.3816 }, // Default Buenos Aires
 
     initMap() {
+        if (!window.L) {
+            console.error('Leaflet not loaded');
+            return;
+        }
+
+        const mapContainer = document.getElementById('settings-map');
+        if (!mapContainer) return;
+
         if (this.map) {
             console.log('Settings Map already exists, re-centering to:', this.coords);
             this.map.setView([this.coords.lat, this.coords.lng], 15);
             this.marker.setLatLng([this.coords.lat, this.coords.lng]);
             // Force invalidateSize to fix leaflet rendering issues in hidden containers
-            setTimeout(() => this.map.invalidateSize(), 150);
+            setTimeout(() => {
+                this.map.invalidateSize();
+            }, 100);
             return;
         }
 
         console.log('Initializing Settings Map with coords:', this.coords);
-        this.map = L.map('settings-map').setView([this.coords.lat, this.coords.lng], 15);
+        this.map = L.map('settings-map', {
+            zoomControl: true,
+            scrollWheelZoom: false
+        }).setView([this.coords.lat, this.coords.lng], 15);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
@@ -37,17 +50,24 @@ export const Settings = {
             console.log('Map clicked at:', this.coords);
         });
 
-        // Fix for rendering in potential HIDDEN state
-        setTimeout(() => this.map.invalidateSize(), 300);
+        // Trigger resize fix after a delay to ensure container is fully visible
+        setTimeout(() => {
+            this.map.invalidateSize();
+        }, 500);
     },
 
     setCoords(lat, lng) {
         if (lat === undefined || lat === null || lng === undefined || lng === null) return;
-        this.coords = { lat: parseFloat(lat), lng: parseFloat(lng) };
-        console.log('Settings coords updated to:', this.coords);
-        if (this.map) {
-            this.map.setView([this.coords.lat, this.coords.lng], 15);
-            this.marker.setLatLng([this.coords.lat, this.coords.lng]);
+        const newCoords = { lat: parseFloat(lat), lng: parseFloat(lng) };
+
+        // Only update and re-center if they actually changed (or map is not yet centered)
+        if (Math.abs(this.coords.lat - newCoords.lat) > 0.0001 || Math.abs(this.coords.lng - newCoords.lng) > 0.0001) {
+            this.coords = newCoords;
+            console.log('Settings coords updated to:', this.coords);
+            if (this.map) {
+                this.map.setView([this.coords.lat, this.coords.lng], 15);
+                this.marker.setLatLng([this.coords.lat, this.coords.lng]);
+            }
         }
     }
 };

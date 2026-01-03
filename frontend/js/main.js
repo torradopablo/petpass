@@ -68,6 +68,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Global helpers
+window.UI = UI;
+window.showSection = (id) => {
+    UI.showSection(id);
+    if (id === 'settings') {
+        Settings.initMap();
+    }
+};
+window.showView = UI.showView;
+
 window.saveProfile = async function () {
     const phone = document.getElementById('setting-phone').value;
     const address = document.getElementById('setting-address').value;

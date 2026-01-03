@@ -18,6 +18,12 @@ class ProfileRepository {
         if (error) throw error;
         return data;
     }
+
+    async delete(id) {
+        const { error } = await supabase.from('profiles').delete().eq('id', id);
+        if (error) throw error;
+        return true;
+    }
 }
 
 module.exports = new ProfileRepository();

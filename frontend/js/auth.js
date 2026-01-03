@@ -162,5 +162,24 @@ export const Auth = {
             .eq('id', this.user.id);
         if (error) throw error;
         await this.loadProfile();
+    },
+
+    async deleteAccount() {
+        if (!this.user) return;
+
+        const response = await fetch('/api/profile', {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${this.session?.access_token}`
+            }
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Error al eliminar cuenta');
+        }
+
+        // Sign out locally
+        await this.signOut();
     }
 };

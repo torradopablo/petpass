@@ -115,10 +115,10 @@
                                     class="px-8 py-4 rounded-full bg-gradient-to-r from-brand-green to-brand-teal text-white font-bold text-lg shadow-lg shadow-green-500/30 hover:shadow-green-500/40 transition-all transform hover:-translate-y-1">
                                     Comenzar Ahora
                                 </button>
-                                <a href="#features"
+                                <button onclick="showView('about')"
                                     class="px-8 py-4 rounded-full bg-white text-gray-700 font-bold text-lg shadow-sm border border-gray-100 hover:bg-gray-50 transition-all">
                                     Saber más
-                                </a>
+                                </button>
                             </div>
                         </div>
                         <div class="relative">
@@ -166,6 +166,144 @@
                                         class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Premium</span>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- View: About / Saber más -->
+        <div id="view-about" class="hidden">
+            <section class="max-w-4xl mx-auto px-4 py-16">
+                <!-- Back Button -->
+                <button onclick="showView('landing')"
+                    class="mb-8 flex items-center gap-2 text-gray-500 hover:text-brand-blue transition-colors group">
+                    <svg class="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Volver a Inicio
+                </button>
+
+                <!-- Value Proposition -->
+                <div class="space-y-12">
+                    <div class="text-center">
+                        <h2 class="text-4xl lg:text-5xl font-bold mb-6">Protección con <span
+                                class="gradient-text">Propósito</span></h2>
+                        <p class="text-xl text-gray-600 leading-relaxed">
+                            PetPass no es solo un collar inteligente. Es la tranquilidad de saber que, pase lo que pase,
+                            tu mejor amigo tiene un camino de regreso a casa.
+                        </p>
+                    </div>
+
+                    <!-- Values Grid -->
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="glass p-8 rounded-3xl">
+                            <div
+                                class="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center text-green-600 mb-6 text-2xl">
+                                ✨</div>
+                            <h3 class="text-2xl font-bold mb-4">Nuestra Visión</h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                Queremos que ninguna mascota en Argentina se pierda sin esperanza. Digitalizamos la
+                                identificación para que sea inmediata, global y dinámica.
+                            </p>
+                        </div>
+                        <div class="glass p-8 rounded-3xl">
+                            <div
+                                class="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mb-6 text-2xl">
+                                🤝</div>
+                            <h3 class="text-2xl font-bold mb-4">Compromiso Real</h3>
+                            <p class="text-gray-600 leading-relaxed">
+                                Detrás de cada QR hay una comunidad lista para ayudar. Facilitamos la conexión entre
+                                quien encuentra una mascota y su familia.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Story / Why -->
+                    <div class="bg-gray-900 text-white p-10 lg:p-16 rounded-[2.5rem] relative overflow-hidden">
+                        <div class="relative z-10">
+                            <h3 class="text-3xl font-bold mb-6">¿Por qué PetPass?</h3>
+                            <p class="text-lg text-gray-300 leading-relaxed mb-8">
+                                En Argentina, las chapitas tradicionales se gastan o se vuelven obsoletas. Con PetPass,
+                                la información de tu mascota siempre está actualizada: desde tus teléfonos de contacto
+                                hasta notas médicas urgentes.
+                            </p>
+                            <div class="flex flex-wrap gap-4">
+                                <div
+                                    class="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full border border-white/10">
+                                    <span class="text-green-400">●</span> Identificación Digital
+                                </div>
+                                <div
+                                    class="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full border border-white/10">
+                                    <span class="text-blue-400">●</span> Geolocalización Inteligente
+                                </div>
+                                <div
+                                    class="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-full border border-white/10">
+                                    <span class="text-purple-400">●</span> Perfil Médico Dinámico
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Decorative glow -->
+                        <div
+                            class="absolute top-0 right-0 w-64 h-64 bg-brand-green/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2">
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- View: Legal / Privacidad -->
+        <div id="view-legal" class="hidden">
+            <section class="max-w-4xl mx-auto px-4 py-16">
+                <!-- Back Button -->
+                <button onclick="showView('landing')"
+                    class="mb-8 flex items-center gap-2 text-gray-500 hover:text-brand-blue transition-colors group">
+                    <svg class="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Volver a Inicio
+                </button>
+
+                <div class="glass p-8 lg:p-12 rounded-[2.5rem] shadow-xl space-y-12">
+                    <!-- Terms Section -->
+                    <div id="legal-terms">
+                        <h2 class="text-3xl font-bold mb-6">Términos y Condiciones</h2>
+                        <div class="prose prose-slate max-w-none text-gray-600 space-y-4">
+                            <p>Bienvenido a PetPass. Al utilizar nuestro servicio, aceptas los siguientes términos:</p>
+                            <ul class="list-disc pl-5 space-y-2">
+                                <li><strong>Servicio de Identificación:</strong> PetPass proporciona etiquetas y
+                                    perfiles digitales para mascotas. No garantizamos la recuperación de mascotas
+                                    perdidas, sino que facilitamos las herramientas de contacto.</li>
+                                <li><strong>Responsabilidad:</strong> El usuario es responsable de mantener la
+                                    información de contacto actualizada en su perfil.</li>
+                                <li><strong>Suscripciones:</strong> Los planes Premium se cobran de forma recurrente.
+                                    Puedes cancelar en cualquier momento desde tu panel.</li>
+                                <li><strong>Uso de Datos:</strong> Al escanear un QR, se registrará la ubicación
+                                    aproximada del escaneo para notificar al dueño.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-100"></div>
+
+                    <!-- Privacy Section -->
+                    <div id="legal-privacy">
+                        <h2 class="text-3xl font-bold mb-6">Política de Privacidad</h2>
+                        <div class="prose prose-slate max-w-none text-gray-600 space-y-4">
+                            <p>En PetPass, la seguridad de tu información es nuestra prioridad:</p>
+                            <ul class="list-disc pl-5 space-y-2">
+                                <li><strong>Datos Recolectados:</strong> Solo solicitamos email y teléfono para la
+                                    gestión del perfil. No compartimos estos datos con terceros externos al proceso de
+                                    identificación.</li>
+                                <li><strong>Geolocalización:</strong> Los datos de GPS se utilizan únicamente para
+                                    enviar alertas de "Mascota Encontrada" al dueño legítimo.</li>
+                                <li><strong>Seguridad:</strong> Utilizamos encriptación y servicios seguros (Supabase,
+                                    Mercado Pago) para procesar transacciones e información sensible.</li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -396,13 +534,12 @@
                                         </div>
                                         <button
                                             onclick="import('./js/payments.js').then(m => m.Payments.cancelSubscription())"
-                                            class="px-6 py-2 bg-white text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all shadow-sm">
-                                            Cancelar Suscripción
-                                        </button>
+                                            class="px-6 py-2 bg-white text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-600 hover:text-white transition-all shadow-sm">Cancelar
+                                            Suscripción</button>
                                     </div>
                                 </div>
 
-                                <h3 class="text-lg font-bold mb-4">Datos Personales</h3>
+                                <h3 class="text-lg font-bold mb-4 mt-12">Datos Personales</h3>
                                 <div class="space-y-4">
                                     <div class="grid md:grid-cols-2 gap-4">
                                         <div>
@@ -427,22 +564,45 @@
                                         <p class="text-[10px] text-gray-500 mt-2">📍 Arrastra el marcador o haz clic en
                                             el mapa para ajustar tu ubicación exacta.</p>
                                     </div>
-                                    <div class="flex justify-end">
-                                        <button onclick="saveProfile()" id="btn-save-profile"
-                                            class="px-6 py-2 bg-brand-green text-white font-bold rounded-lg hover:bg-green-600 transition-colors">
-                                            Guardar Cambios
+                                    <div class="flex justify-end gap-3">
+                                        <button onclick="deleteAccount()"
+                                            class="px-6 py-2 border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-50 transition-colors">
+                                            Eliminar Cuenta
                                         </button>
+                                        <button onclick="saveProfile()" id="btn-save-profile"
+                                            class="px-6 py-2 bg-brand-green text-white font-bold rounded-lg hover:bg-green-600 transition-colors">Guardar
+                                            Cambios</button>
                                     </div>
                                 </div>
                             </div>
                         </section>
-
                     </div>
                 </div>
             </div>
-        </div>
-
     </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-100 py-12 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-8">
+                <div class="flex items-center gap-2">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-green to-brand-blue flex items-center justify-center text-white font-bold text-sm">
+                        P</div>
+                    <span class="font-bold text-xl">PetPass</span>
+                    <span class="text-gray-400 text-sm ml-2">© 2026</span>
+                </div>
+                <div class="flex gap-8 text-sm text-gray-500">
+                    <a href="javascript:void(0)" onclick="showView('about')"
+                        class="hover:text-brand-blue transition-colors">Saber más</a>
+                    <a href="javascript:void(0)" onclick="showView('legal')"
+                        class="hover:text-brand-blue transition-colors">Legales</a>
+                    <a href="javascript:void(0)" onclick="showView('legal')"
+                        class="hover:text-brand-blue transition-colors">Privacidad</a>
+                </div>
+            </div>
+        </div>
+    </footer>
 
     <!-- Modal: Login -->
     <div id="modal-login"
@@ -800,9 +960,23 @@
             console.log('subscribeToPlan called with:', plan, currentBillingCycle);
             try {
                 const { Payments } = await import('./js/payments.js');
-                Payments.subscribe(plan, currentBillingCycle);
+                await Payments.subscribe(plan, currentBillingCycle);
             } catch (e) {
                 console.error('Import error:', e);
+            }
+        }
+
+        async function deleteAccount() {
+            const confirmed = confirm('¿ESTÁS SEGURO? Esta acción es irreversible. Se eliminarán todos tus datos y mascotas, y se cancelará tu suscripción activa.');
+            if (!confirmed) return;
+
+            try {
+                UI.toast('Eliminando cuenta...', 'info');
+                await import('./js/auth.js').then(m => m.Auth.deleteAccount());
+                UI.toast('Cuenta eliminada correctamente');
+            } catch (error) {
+                console.error(error);
+                UI.toast(error.message || 'Error al eliminar cuenta', 'error');
             }
         }
     </script>

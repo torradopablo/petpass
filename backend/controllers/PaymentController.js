@@ -1,5 +1,5 @@
-
 const PaymentService = require('../services/PaymentService');
+const ProfileRepository = require('../repositories/ProfileRepository');
 
 class PaymentController {
 
@@ -15,7 +15,7 @@ class PaymentController {
                     user.email,
                     user.id
                 );
-                return res.json(preference); // Returns { id, init_point }
+                return res.json(preference);
             }
 
             // Normal preference (one-time purchase)
@@ -30,38 +30,46 @@ class PaymentController {
             console.error('PaymentController Error:', error);
             res.status(500).json({
                 error: 'Payment error',
-                message: error.message,
-                cause: error.cause
+                message: error.message
             });
         }
     }
+
     async cancelSubscription(req, res) {
         try {
             const userId = req.user.id;
-            const ProfileRepository = require('../repositories/ProfileRepository');
+            console.log(`Attempting to cancel subscription for user: ${userId}`);
+
             const profile = await ProfileRepository.findById(userId);
 
             if (!profile.subscription_id) {
+                console.warn(`No active subscription found for user ${userId}`);
                 return res.status(400).json({ error: 'No active subscription found' });
             }
 
+            console.log(`Cancelling MP subscription: ${profile.subscription_id}`);
             await PaymentService.cancelSubscription(profile.subscription_id);
 
-            // Update local status
+            // Update local status immediately
             await ProfileRepository.update(userId, {
-                plan_status: 'canceled'
+                plan_status: 'cancelled',
+                // We keep plan name and expires_at for record, 
+                // but status 'cancelled' means no more billing.
             });
 
             res.json({ message: 'Subscription canceled successfully' });
         } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'Cancellation error' });
+            console.error('Cancellation Error:', error);
+            res.status(500).json({
+                error: 'Cancellation error',
+                message: error.message
+            });
         }
     }
 
-
     async webhook(req, res) {
         const { type, data } = req.body;
+        console.log(`Webhook received: ${type}`, data);
 
         try {
             if (type === 'payment') {
@@ -72,13 +80,10 @@ class PaymentController {
                     const externalReference = payment.external_reference;
 
                     if (externalReference && externalReference.startsWith('sub_')) {
-                        // Logic for subscription: sub_planId_period_userId
                         const parts = externalReference.split('_');
                         const planId = parts[1];
                         const period = parts[2];
                         const userId = parts[3];
-
-                        const ProfileRepository = require('../repositories/ProfileRepository');
 
                         // Calculate expiration date
                         const expiresAt = new Date();
@@ -99,19 +104,18 @@ class PaymentController {
                     }
                 }
             } else if (type === 'preapproval') {
-                const preApprovalId = data.id || req.body.resource; // MP webhooks can vary
+                const preApprovalId = data.id || req.body.resource;
                 const preApproval = await PaymentService.getPreApproval(preApprovalId);
+                console.log(`PreApproval status for ${preApprovalId}: ${preApproval.status}`);
 
-                if (preApproval.status === 'authorized') {
-                    const externalReference = preApproval.external_reference;
+                const externalReference = preApproval.external_reference;
+                if (externalReference && externalReference.startsWith('sub_')) {
+                    const parts = externalReference.split('_');
+                    const userId = parts[3];
 
-                    if (externalReference && externalReference.startsWith('sub_')) {
-                        const parts = externalReference.split('_');
+                    if (preApproval.status === 'authorized') {
                         const planId = parts[1];
                         const period = parts[2];
-                        const userId = parts[3];
-
-                        const ProfileRepository = require('../repositories/ProfileRepository');
 
                         await ProfileRepository.update(userId, {
                             subscription_id: preApprovalId,
@@ -119,13 +123,17 @@ class PaymentController {
                             plan_status: 'active',
                             subscription_period: period
                         });
-
                         console.log(`Subscription authorized for user ${userId}: ${preApprovalId}`);
+                    } else if (preApproval.status === 'cancelled' || preApproval.status === 'paused') {
+                        await ProfileRepository.update(userId, {
+                            plan_status: 'cancelled'
+                        });
+                        console.log(`Subscription ${preApproval.status} for user ${userId}`);
                     }
                 }
             }
         } catch (error) {
-            console.error('Webhook Error:', error);
+            console.error('Webhook processing error:', error);
         }
 
         res.status(200).send('OK');

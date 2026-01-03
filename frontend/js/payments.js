@@ -104,6 +104,9 @@ export const Payments = {
 
     async cancelSubscription() {
         try {
+            const confirmed = confirm('¿Estás seguro de que deseas cancelar tu suscripción? Seguirás teniendo acceso hasta el final del periodo pagado, pero no se realizarán más cobros.');
+            if (!confirmed) return;
+
             UI.toast('Cancelando suscripción...', 'info');
             const response = await fetch('/api/payments', {
                 method: 'DELETE',
@@ -112,14 +115,17 @@ export const Payments = {
                 }
             });
 
-            if (!response.ok) throw new Error('Error al cancelar');
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Error al cancelar');
+            }
 
             UI.toast('Suscripción cancelada correctamente');
             // Reload page or update UI
             setTimeout(() => location.reload(), 1500);
         } catch (error) {
             console.error(error);
-            UI.toast('Error al cancelar suscripción', 'error');
+            UI.toast(error.message || 'Error al cancelar suscripción', 'error');
         }
     }
 };
