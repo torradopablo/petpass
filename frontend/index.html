@@ -411,7 +411,7 @@
                                             stroke-width="2" d="M5 13l4 4L19 7"></path>
                                     </svg> Historial de Posiciones</li>
                             </ul>
-                            <button onclick="document.getElementById('btn-login').click()"
+                            <button onclick="handlePlanSelection('basico')"
                                 class="w-full mt-8 py-3 rounded-xl bg-brand-green text-white font-bold hover:bg-green-600 shadow-lg shadow-green-500/30 transition-all hover:scale-[1.02]">Seleccionar</button>
                         </div>
 
@@ -463,7 +463,7 @@
                                             stroke-width="2" d="M5 13l4 4L19 7"></path>
                                     </svg> Beneficios Exclusivos</li>
                             </ul>
-                            <button onclick="document.getElementById('btn-login').click()"
+                            <button onclick="handlePlanSelection('premium')"
                                 class="w-full mt-8 py-3 rounded-xl bg-white text-gray-900 font-bold hover:bg-gray-100 transition-all hover:scale-[1.02]">Seleccionar</button>
                         </div>
                     </div>
@@ -1260,6 +1260,15 @@
                 priceVals.forEach(v => v.textContent = '$' + v.dataset.monthly);
                 periodLabels.forEach(l => l.textContent = '/mes');
             }
+        }
+
+        async function handlePlanSelection(plan) {
+            // Store the selected plan and billing cycle for after login
+            sessionStorage.setItem('selectedPlan', plan);
+            sessionStorage.setItem('selectedBillingCycle', currentBillingCycle);
+            
+            // Redirect to login
+            document.getElementById('btn-login').click();
         }
 
         async function subscribeToPlan(plan) {

@@ -68,42 +68,12 @@ class PaymentController {
     }
 
     async webhook(req, res) {
-        const { type, data } = req.body;
-        console.log(`Webhook received: ${type}`, data);
+        const { type, data, action } = req.body;
+        console.log(`Webhook received: ${type}`, { action, data });
 
         try {
-            if (type === 'payment') {
-                const paymentId = data.id;
-                const payment = await PaymentService.getPayment(paymentId);
-
-                if (payment.status === 'approved') {
-                    const externalReference = payment.external_reference;
-
-                    if (externalReference && externalReference.startsWith('sub_')) {
-                        const parts = externalReference.split('_');
-                        const planId = parts[1];
-                        const period = parts[2];
-                        const userId = parts[3];
-
-                        // Calculate expiration date
-                        const expiresAt = new Date();
-                        if (period === 'monthly') {
-                            expiresAt.setMonth(expiresAt.getMonth() + 1);
-                        } else {
-                            expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-                        }
-
-                        await ProfileRepository.update(userId, {
-                            plan: planId,
-                            plan_status: 'active',
-                            plan_expires_at: expiresAt.toISOString(),
-                            subscription_period: period
-                        });
-
-                        console.log(`Plan updated for user ${userId}: ${planId} (${period})`);
-                    }
-                }
-            } else if (type === 'preapproval') {
+            // Handle recurring subscription webhooks (preapproval)
+            if (type === 'preapproval') {
                 const preApprovalId = data.id || req.body.resource;
                 const preApproval = await PaymentService.getPreApproval(preApprovalId);
                 console.log(`PreApproval status for ${preApprovalId}: ${preApproval.status}`);
@@ -117,23 +87,63 @@ class PaymentController {
                         const planId = parts[1];
                         const period = parts[2];
 
+                        // Calculate expiration date based on period
+                        const expiresAt = new Date();
+                        if (period === 'monthly') {
+                            expiresAt.setMonth(expiresAt.getMonth() + 1);
+                        } else if (period === 'annual') {
+                            expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+                        }
+
                         await ProfileRepository.update(userId, {
                             subscription_id: preApprovalId,
                             plan: planId,
                             plan_status: 'active',
+                            plan_expires_at: expiresAt.toISOString(),
                             subscription_period: period
                         });
-                        console.log(`Subscription authorized for user ${userId}: ${preApprovalId}`);
-                    } else if (preApproval.status === 'cancelled' || preApproval.status === 'paused') {
+                        console.log(`✅ Subscription ACTIVATED for user ${userId}: ${planId} (${period}) until ${expiresAt.toISOString()}`);
+                        
+                    } else if (preApproval.status === 'cancelled') {
                         await ProfileRepository.update(userId, {
-                            plan_status: 'cancelled'
+                            plan_status: 'cancelled',
+                            plan_expires_at: new Date().toISOString() // Cancel immediately
                         });
-                        console.log(`Subscription ${preApproval.status} for user ${userId}`);
+                        console.log(`❌ Subscription CANCELLED for user ${userId}`);
+                        
+                    } else if (preApproval.status === 'paused') {
+                        await ProfileRepository.update(userId, {
+                            plan_status: 'paused'
+                        });
+                        console.log(`⏸️ Subscription PAUSED for user ${userId}`);
+                        
+                    } else {
+                        console.log(`📋 PreApproval status ${preApproval.status} for user ${userId} - no action taken`);
                     }
                 }
             }
+            // Handle one-time payments (for physical products like collars)
+            else if (type === 'payment') {
+                const paymentId = data.id;
+                const payment = await PaymentService.getPayment(paymentId);
+
+                if (payment.status === 'approved') {
+                    const externalReference = payment.external_reference;
+                    console.log(`💳 Payment approved: ${paymentId} - ${externalReference}`);
+
+                    // Handle one-time purchases (not subscriptions)
+                    if (externalReference && !externalReference.startsWith('sub_')) {
+                        // This would be for physical products like collars
+                        console.log(`🛍️ One-time purchase processed: ${externalReference}`);
+                        // TODO: Handle order fulfillment logic here
+                    }
+                }
+            } else {
+                console.log(`🔍 Unknown webhook type: ${type}`);
+            }
         } catch (error) {
-            console.error('Webhook processing error:', error);
+            console.error('❌ Webhook processing error:', error);
+            // Still return 200 to avoid MP retrying indefinitely
         }
 
         res.status(200).send('OK');
