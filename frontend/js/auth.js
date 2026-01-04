@@ -1,6 +1,7 @@
 import { supabase } from './supabaseClient.js';
 import { UI } from './ui.js';
 import { Settings } from './settings.js';
+import { MembershipServiceInstance } from './services/MembershipService.js';
 
 export const Auth = {
     user: null,
@@ -115,6 +116,8 @@ export const Auth = {
 
             // Update subscription status display
             this.updateSubscriptionUI(data);
+            // Update membership status using new service
+            this.updateMembershipUI(data);
 
             // Highlight current plan in UI
             document.querySelectorAll('[data-plan-card]').forEach(card => {
@@ -227,5 +230,133 @@ export const Auth = {
                 expiryDateEl.textContent = expiryDate.toLocaleDateString('es-AR');
             }
         }
+    },
+
+    updateMembershipUI(profile) {
+        // Analyze membership using the new service
+        const membership = MembershipServiceInstance.analyzeMembership(profile);
+        
+        // Update membership card if it exists
+        const membershipCardContainer = document.getElementById('membership-card-container');
+        if (membershipCardContainer) {
+            // Import and create membership card dynamically
+            import('./components/ui/MembershipCard.js').then(({ createMembershipCard }) => {
+                const card = createMembershipCard(membershipCardContainer, MembershipServiceInstance);
+                card.render(membership);
+            });
+        }
+        
+        // Update plan selection buttons based on membership
+        this.updatePlanSelectionUI(membership);
+        
+        // Show/hide features based on membership
+        this.updateFeaturesUI(membership);
+        
+        // Store membership for global access
+        window.currentMembership = membership;
+        
+        console.log('Membership updated:', membership);
+    },
+
+    updatePlanSelectionUI(membership) {
+        document.querySelectorAll('[data-plan-card]').forEach(card => {
+            const planId = card.dataset.planCard;
+            const btn = card.querySelector('button');
+
+            if (planId === membership.plan) {
+                btn.textContent = 'Tu Plan Actual';
+                btn.disabled = true;
+                btn.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                btn.classList.remove('bg-brand-green', 'bg-white', 'text-white', 'text-gray-900', 'hover:scale-[1.02]');
+                card.classList.add('ring-4', 'ring-brand-green/20', 'opacity-75');
+            } else {
+                // Enable upgrade/downgrade based on membership rules
+                const canSelect = this.canSelectPlan(planId, membership);
+                btn.disabled = !canSelect;
+                
+                if (canSelect) {
+                    btn.textContent = 'Seleccionar';
+                    btn.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                    
+                    // Restore original button styling based on plan
+                    if (planId === 'premium') {
+                        btn.classList.add('bg-white', 'text-gray-900', 'hover:scale-[1.02]');
+                        btn.classList.remove('bg-brand-green', 'text-white');
+                    } else {
+                        btn.classList.add('bg-brand-green', 'text-white', 'hover:scale-[1.02]');
+                        btn.classList.remove('bg-white', 'text-gray-900');
+                    }
+                } else {
+                    btn.textContent = 'No disponible';
+                    btn.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
+                    btn.classList.remove('bg-brand-green', 'bg-white', 'text-white', 'text-gray-900', 'hover:scale-[1.02]');
+                }
+                
+                card.classList.remove('ring-4', 'ring-brand-green/20', 'opacity-75');
+            }
+        });
+    },
+
+    canSelectPlan(targetPlan, membership) {
+        // Gratis can always upgrade to paid plans
+        if (membership.plan === 'gratis' && (targetPlan === 'basico' || targetPlan === 'premium')) {
+            return true;
+        }
+        
+        // Basic can upgrade to premium
+        if (membership.plan === 'basico' && targetPlan === 'premium') {
+            return true;
+        }
+        
+        // Premium can downgrade (but should show confirmation)
+        if (membership.plan === 'premium' && targetPlan === 'basico') {
+            return true;
+        }
+        
+        // Cannot downgrade to gratis if has active subscription
+        if (membership.plan !== 'gratis' && targetPlan === 'gratis') {
+            return false;
+        }
+        
+        return false;
+    },
+
+    updateFeaturesUI(membership) {
+        // Update pet limit indicator
+        const petCountElement = document.getElementById('pet-count-indicator');
+        if (petCountElement) {
+            const currentPetCount = document.querySelectorAll('[data-pet-card]').length;
+            const maxPets = MembershipServiceInstance.features[membership.plan]?.maxPets || 2;
+            
+            petCountElement.textContent = `${currentPetCount}/${maxPets} mascotas`;
+            petCountElement.className = currentPetCount >= maxPets 
+                ? 'text-red-500 font-medium' 
+                : 'text-gray-500';
+        }
+        
+        // Disable add pet button if at limit
+        const addPetBtn = document.getElementById('btn-add-pet');
+        if (addPetBtn) {
+            const currentPetCount = document.querySelectorAll('[data-pet-card]').length;
+            const canAdd = MembershipServiceInstance.canAddPet(currentPetCount, membership);
+            
+            addPetBtn.disabled = !canAdd;
+            if (!canAdd) {
+                addPetBtn.textContent = 'Límite alcanzado';
+                addPetBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                addPetBtn.textContent = 'Nueva Mascota';
+                addPetBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+        
+        // Show/hide premium features
+        document.querySelectorAll('[data-premium-feature]').forEach(feature => {
+            const featureName = feature.dataset.premiumFeature;
+            const isAvailable = MembershipServiceInstance.isFeatureAvailable(featureName, membership);
+            
+            feature.classList.toggle('hidden', !isAvailable);
+            feature.classList.toggle('opacity-50', !isAvailable);
+        });
     }
 };
