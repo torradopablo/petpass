@@ -1,21 +1,25 @@
-
 const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-module.exports = async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-        throw new Error('Missing Authorization header');
+module.exports = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({ error: 'Missing Authorization header' });
+        }
+
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+
+        req.user = user;
+        next();
+    } catch (err) {
+        console.error('Auth Middleware Error:', err);
+        res.status(500).json({ error: 'Internal Server Error during authentication' });
     }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-        throw new Error('Invalid token');
-    }
-
-    req.user = user;
-    return user;
 };

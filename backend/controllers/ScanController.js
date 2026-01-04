@@ -10,6 +10,15 @@ class ScanController {
             res.status(500).json({ error: error.message });
         }
     }
+
+    async getByPet(req, res) {
+        try {
+            const scans = await ScanService.getScansByPet(req.params.petId);
+            res.json(scans);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
 }
 
 module.exports = new ScanController();

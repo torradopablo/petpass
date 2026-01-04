@@ -14,7 +14,7 @@ class PetController {
         }
     }
 
-    async getMine(req, res) {
+    async getAll(req, res) {
         try {
             const pets = await PetService.getPetsByOwner(req.user.id);
             res.json(pets);
@@ -23,9 +23,18 @@ class PetController {
         }
     }
 
+    async getById(req, res) {
+        try {
+            const pet = await PetService.getPetById(req.params.id);
+            res.json(pet);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
     async update(req, res) {
         try {
-            const petId = req.query.id || req.body.id;
+            const petId = req.params.id || req.query.id || req.body.id;
 
             if (!petId) {
                 return res.status(400).json({ error: 'Pet ID is required' });
@@ -40,7 +49,7 @@ class PetController {
 
     async delete(req, res) {
         try {
-            const petId = req.query.id || req.body.id;
+            const petId = req.params.id || req.query.id || req.body.id;
 
             if (!petId) {
                 return res.status(400).json({ error: 'Pet ID is required' });

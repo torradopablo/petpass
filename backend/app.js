@@ -1,0 +1,45 @@
+const express = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const dotenv = require('dotenv');
+
+// Load environment variables
+dotenv.config();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+
+// Stripe webhook needs raw body
+app.use('/api/webhooks', bodyParser.raw({ type: 'application/json' }));
+
+// Regular JSON body parser for other routes
+app.use(express.json());
+
+// Routes
+const paymentRoutes = require('./routes/paymentRoutes');
+const petRoutes = require('./routes/petRoutes');
+const scanRoutes = require('./routes/scanRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+
+app.use('/api/payments', paymentRoutes);
+app.use('/api/webhooks', (req, res, next) => {
+    // This is a bridge to the controller which handles the webhook
+    const PaymentController = require('./controllers/PaymentController');
+    PaymentController.webhook(req, res);
+});
+app.use('/api/pets', petRoutes);
+app.use('/api/scans', scanRoutes);
+app.use('/api/profile', profileRoutes);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(err.status || 500).json({
+        error: err.name || 'InternalServerError',
+        message: err.message || 'Something went wrong on the server'
+    });
+});
+
+module.exports = app;
