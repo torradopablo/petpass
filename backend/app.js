@@ -22,10 +22,11 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const petRoutes = require('./routes/petRoutes');
 const scanRoutes = require('./routes/scanRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 app.use('/api/payments', paymentRoutes);
+app.use('/api/orders', orderRoutes);
 app.use('/api/webhooks', (req, res, next) => {
-    // This is a bridge to the controller which handles the webhook
     const PaymentController = require('./controllers/PaymentController');
     PaymentController.webhook(req, res);
 });

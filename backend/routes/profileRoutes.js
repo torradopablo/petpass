@@ -21,4 +21,13 @@ router.put('/', authMiddleware, async (req, res) => {
     }
 });
 
+router.delete('/', authMiddleware, async (req, res) => {
+    try {
+        await ProfileRepository.delete(req.user.id);
+        res.status(204).end();
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;

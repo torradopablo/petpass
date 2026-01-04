@@ -1,2 +1,3 @@
-[dotenv@17.2.3] injecting env (13) from .env -- tip: ⚙️  override existing env vars with { override: true }
+nohup: ignoring input
+[dotenv@17.2.3] injecting env (13) from .env -- tip: 👥 sync secrets across teammates & machines: https://dotenvx.com/ops
 Local server running at http://localhost:3001

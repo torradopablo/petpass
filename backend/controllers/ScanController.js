@@ -1,4 +1,5 @@
 const ScanService = require('../services/ScanService');
+const ScanRepository = require('../repositories/ScanRepository');
 
 class ScanController {
     async create(req, res) {
@@ -13,7 +14,7 @@ class ScanController {
 
     async getByPet(req, res) {
         try {
-            const scans = await ScanService.getScansByPet(req.params.petId);
+            const scans = await ScanRepository.findByPetId(req.params.petId);
             res.json(scans);
         } catch (error) {
             res.status(500).json({ error: error.message });

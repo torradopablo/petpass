@@ -1,5 +1,6 @@
 const PetRepository = require('../repositories/PetRepository');
 const ProfileRepository = require('../repositories/ProfileRepository');
+const ScanRepository = require('../repositories/ScanRepository');
 const Plans = require('../config/Plans');
 
 class PetService {
@@ -22,6 +23,10 @@ class PetService {
 
     async getPetById(id) {
         return await PetRepository.findById(id);
+    }
+
+    async getScansByPet(petId) {
+        return await ScanRepository.findByPetId(petId);
     }
 
     async getPetsByOwner(ownerId) {
