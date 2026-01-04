@@ -13,7 +13,7 @@ console.log('MP Config Debug:', {
     hasToken: !!token,
     length: token.length,
     prefix: token.substring(0, 10) + '...',
-    siteUrl: process.env.SITE_URL
+    siteUrl: process.env.MP_PUBLIC_URL || process.env.SITE_URL
 });
 
 class PaymentService {
@@ -65,9 +65,16 @@ class PaymentService {
 
         const title = `Suscripcion PetPass ${plan.name} (${period === 'monthly' ? 'Mensual' : 'Anual'})`;
 
-        let siteUrl = process.env.SITE_URL || 'http://localhost:3001';
+        let siteUrl = process.env.MP_PUBLIC_URL || process.env.SITE_URL || 'http://localhost:3001';
         if (!siteUrl.startsWith('http')) {
             siteUrl = 'http://' + siteUrl;
+        }
+
+        // For Mercado Pago test mode, we need a valid public URL
+        // If still using localhost, use a fallback public URL
+        if (siteUrl.includes('localhost')) {
+            console.warn('Using fallback URL for Mercado Pago test mode');
+            siteUrl = 'https://petpass.vercel.app'; // Replace with your actual domain in production
         }
 
         const body = {

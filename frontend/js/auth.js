@@ -113,6 +113,9 @@ export const Auth = {
             const planStatus = data?.plan_status || 'active';
             const expiresAt = data?.plan_expires_at;
 
+            // Update subscription status display
+            this.updateSubscriptionUI(data);
+
             // Highlight current plan in UI
             document.querySelectorAll('[data-plan-card]').forEach(card => {
                 const planId = card.dataset.planCard;
@@ -181,5 +184,48 @@ export const Auth = {
 
         // Sign out locally
         await this.signOut();
+    },
+
+    updateSubscriptionUI(profile) {
+        // Update current plan display
+        const currentPlanName = document.getElementById('current-plan-name');
+        const currentPlanStatus = document.getElementById('current-plan-status');
+        const subscriptionCancelSection = document.getElementById('subscription-cancel-section');
+
+        if (currentPlanName) {
+            const planNames = {
+                'basico': 'Plan Básico',
+                'premium': 'Plan Premium',
+                'gratis': 'Plan Gratuito'
+            };
+            currentPlanName.textContent = planNames[profile.plan] || 'Plan Gratuito';
+        }
+
+        if (currentPlanStatus) {
+            const statusConfig = {
+                'active': { text: 'Activo', class: 'bg-green-100 text-green-700' },
+                'cancelled': { text: 'Cancelado', class: 'bg-red-100 text-red-700' },
+                'paused': { text: 'Pausado', class: 'bg-yellow-100 text-yellow-700' },
+                'expired': { text: 'Expirado', class: 'bg-gray-100 text-gray-700' }
+            };
+            
+            const status = profile.plan_status || 'active';
+            const config = statusConfig[status] || statusConfig['active'];
+            currentPlanStatus.textContent = config.text;
+            currentPlanStatus.className = `px-3 py-1 rounded-full text-xs font-bold uppercase ${config.class}`;
+        }
+
+        // Show/hide cancel section based on subscription
+        if (subscriptionCancelSection) {
+            const hasActiveSubscription = profile.plan && profile.plan !== 'gratis' && profile.plan_status === 'active';
+            subscriptionCancelSection.classList.toggle('hidden', !hasActiveSubscription);
+            
+            // Update expiry date if available
+            const expiryDateEl = document.getElementById('plan-expiry-date');
+            if (expiryDateEl && profile.plan_expires_at) {
+                const expiryDate = new Date(profile.plan_expires_at);
+                expiryDateEl.textContent = expiryDate.toLocaleDateString('es-AR');
+            }
+        }
     }
 };
