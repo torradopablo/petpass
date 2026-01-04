@@ -2,6 +2,7 @@ const PetRepository = require('../repositories/PetRepository');
 const ProfileRepository = require('../repositories/ProfileRepository');
 const ScanRepository = require('../repositories/ScanRepository');
 const Plans = require('../config/Plans');
+const cloudinary = require('../utils/cloudinary');
 
 class PetService {
     async createPet(petData) {
@@ -47,7 +48,6 @@ class PetService {
 
         // If updating photo and old photo exists in Cloudinary, delete it
         if (petData.photo_url && pet.photo_url && pet.photo_url.includes('cloudinary.com')) {
-            const cloudinary = require('../utils/cloudinary');
             await cloudinary.deleteImage(pet.photo_url);
         }
 
@@ -69,7 +69,6 @@ class PetService {
 
         // Delete image from Cloudinary if it exists
         if (pet.photo_url && pet.photo_url.includes('cloudinary.com')) {
-            const cloudinary = require('../utils/cloudinary');
             await cloudinary.deleteImage(pet.photo_url);
         }
 

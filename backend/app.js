@@ -6,6 +6,12 @@ const dotenv = require('dotenv');
 // Load environment variables
 dotenv.config();
 
+// Debug: Check if environment variables are loaded
+console.log('Environment variables loaded:');
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL ? 'PRESENT' : 'MISSING');
+console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'PRESENT' : 'MISSING');
+console.log('CLOUDINARY_CLOUD_NAME:', process.env.CLOUDINARY_CLOUD_NAME ? 'PRESENT' : 'MISSING');
+
 const app = express();
 
 // Middleware
@@ -30,7 +36,11 @@ app.use('/api/webhooks', (req, res, next) => {
     const PaymentController = require('./controllers/PaymentController');
     PaymentController.webhook(req, res);
 });
-app.use('/api/pets', petRoutes);
+app.use('/api/pets', (req, res, next) => {
+    console.log('Pets endpoint accessed:', req.method, req.url);
+    console.log('Headers:', req.headers);
+    next();
+}, petRoutes);
 app.use('/api/scans', scanRoutes);
 app.use('/api/profile', profileRoutes);
 

@@ -512,7 +512,16 @@ export const Pets = {
             });
 
             if (!response.ok) {
-                const error = await response.json();
+                const errorText = await response.text();
+                console.log('Raw error response:', errorText);
+                
+                let error;
+                try {
+                    error = JSON.parse(errorText);
+                } catch (e) {
+                    error = { error: errorText };
+                }
+                
                 throw new Error(error.error || 'Error al actualizar');
             }
 
