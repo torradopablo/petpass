@@ -55,6 +55,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         Pets.init();
     }
 
+    // Smooth scrolling for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement) {
+                // Ensure we're on the landing view
+                UI.showView('landing');
+                
+                // Smooth scroll to the section
+                setTimeout(() => {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }, 100);
+            }
+        });
+    });
+
     // Address blur listener to update map
     document.getElementById('setting-address')?.addEventListener('blur', async (e) => {
         const addr = e.target.value;
