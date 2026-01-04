@@ -6,16 +6,16 @@ export const Payments = {
     mp: null,
 
     async init() {
-        const key = window.env?.MP_PUBLIC_KEY;
+        const key = window.env?.STRIPE_PUBLIC_KEY;
         if (!key) {
-            console.error('MP_PUBLIC_KEY not found in window.env');
+            console.error('STRIPE_PUBLIC_KEY not found in window.env');
             throw new Error('Configuración de pago incompleta');
         }
-        if (!window.MercadoPago) {
-            console.error('Mercado Pago SDK not loaded');
-            throw new Error('Error al cargar Mercado Pago');
+        if (!window.Stripe) {
+            console.error('Stripe SDK not loaded');
+            throw new Error('Error al cargar Stripe');
         }
-        this.mp = new window.MercadoPago(key);
+        this.stripe = window.Stripe(key);
     },
 
     async createPreference(orderData) {
@@ -86,13 +86,10 @@ export const Payments = {
             console.log('Preference data received:', data);
 
             if (data.init_point) {
-                console.log('Redirecting to MP:', data.init_point);
+                console.log('Redirecting to Stripe:', data.init_point);
                 window.location.href = data.init_point;
-            } else if (data.id) {
-                console.log('Opening MP checkout modal for ID:', data.id);
-                await this.checkout(data.id);
             } else {
-                throw new Error('No se recibió ID ni init_point de Mercado Pago');
+                throw new Error('No se recibió la URL de pago de Stripe');
             }
 
         } catch (error) {

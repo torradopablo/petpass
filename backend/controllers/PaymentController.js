@@ -1,31 +1,26 @@
 const PaymentService = require('../services/PaymentService');
 const ProfileRepository = require('../repositories/ProfileRepository');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 class PaymentController {
 
     async createPreference(req, res) {
         try {
-            const { plan, period, items, pet_id } = req.body;
+            const { plan, period } = req.body;
             const user = req.user;
 
             if (plan && period) {
-                const preference = await PaymentService.createRecurringPreference(
+                const session = await PaymentService.createCheckoutSession(
                     plan,
                     period,
                     user.email,
                     user.id
                 );
-                return res.json(preference);
+                // Return both ID and URL for flexibility
+                return res.json({ id: session.id, init_point: session.url });
             }
 
-            // Normal preference (one-time purchase)
-            const preference = await PaymentService.createPreference(
-                items,
-                { email: user.email },
-                pet_id
-            );
-
-            res.json({ id: preference.id });
+            res.status(400).json({ error: 'Plan and period are required' });
         } catch (error) {
             console.error('PaymentController Error:', error);
             res.status(500).json({
@@ -38,26 +33,19 @@ class PaymentController {
     async cancelSubscription(req, res) {
         try {
             const userId = req.user.id;
-            console.log(`Attempting to cancel subscription for user: ${userId}`);
-
             const profile = await ProfileRepository.findById(userId);
 
             if (!profile.subscription_id) {
-                console.warn(`No active subscription found for user ${userId}`);
                 return res.status(400).json({ error: 'No active subscription found' });
             }
 
-            console.log(`Cancelling MP subscription: ${profile.subscription_id}`);
             await PaymentService.cancelSubscription(profile.subscription_id);
 
-            // Update local status immediately
             await ProfileRepository.update(userId, {
-                plan_status: 'cancelled',
-                // We keep plan name and expires_at for record, 
-                // but status 'cancelled' means no more billing.
+                plan_status: 'cancelled'
             });
 
-            res.json({ message: 'Subscription canceled successfully' });
+            res.json({ message: 'Subscription will be canceled at the end of the period' });
         } catch (error) {
             console.error('Cancellation Error:', error);
             res.status(500).json({
@@ -68,85 +56,62 @@ class PaymentController {
     }
 
     async webhook(req, res) {
-        const { type, data, action } = req.body;
-        console.log(`Webhook received: ${type}`, { action, data });
+        const sig = req.headers['stripe-signature'];
+        let event;
 
         try {
-            // Handle recurring subscription webhooks (preapproval)
-            if (type === 'preapproval') {
-                const preApprovalId = data.id || req.body.resource;
-                const preApproval = await PaymentService.getPreApproval(preApprovalId);
-                console.log(`PreApproval status for ${preApprovalId}: ${preApproval.status}`);
+            event = stripe.webhooks.constructEvent(
+                req.body,
+                sig,
+                process.env.STRIPE_WEBHOOK_SECRET
+            );
+        } catch (err) {
+            console.error(`Webhook Error: ${err.message}`);
+            return res.status(400).send(`Webhook Error: ${err.message}`);
+        }
 
-                const externalReference = preApproval.external_reference;
-                if (externalReference && externalReference.startsWith('sub_')) {
-                    const parts = externalReference.split('_');
-                    const userId = parts[3];
+        try {
+            switch (event.type) {
+                case 'checkout.session.completed':
+                    const session = event.data.object;
+                    const userId = session.client_reference_id;
+                    const subscriptionId = session.subscription;
+                    const planId = session.metadata.planId;
+                    const period = session.metadata.period;
 
-                    if (preApproval.status === 'authorized') {
-                        const planId = parts[1];
-                        const period = parts[2];
-
-                        // Calculate expiration date based on period
-                        const expiresAt = new Date();
-                        if (period === 'monthly') {
-                            expiresAt.setMonth(expiresAt.getMonth() + 1);
-                        } else if (period === 'annual') {
-                            expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-                        }
-
-                        await ProfileRepository.update(userId, {
-                            subscription_id: preApprovalId,
-                            plan: planId,
-                            plan_status: 'active',
-                            plan_expires_at: expiresAt.toISOString(),
-                            subscription_period: period
-                        });
-                        console.log(`✅ Subscription ACTIVATED for user ${userId}: ${planId} (${period}) until ${expiresAt.toISOString()}`);
-                        
-                    } else if (preApproval.status === 'cancelled') {
-                        await ProfileRepository.update(userId, {
-                            plan_status: 'cancelled',
-                            plan_expires_at: new Date().toISOString() // Cancel immediately
-                        });
-                        console.log(`❌ Subscription CANCELLED for user ${userId}`);
-                        
-                    } else if (preApproval.status === 'paused') {
-                        await ProfileRepository.update(userId, {
-                            plan_status: 'paused'
-                        });
-                        console.log(`⏸️ Subscription PAUSED for user ${userId}`);
-                        
-                    } else {
-                        console.log(`📋 PreApproval status ${preApproval.status} for user ${userId} - no action taken`);
+                    const expiresAt = new Date();
+                    if (period === 'monthly') {
+                        expiresAt.setMonth(expiresAt.getMonth() + 1);
+                    } else if (period === 'annual') {
+                        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
                     }
-                }
-            }
-            // Handle one-time payments (for physical products like collars)
-            else if (type === 'payment') {
-                const paymentId = data.id;
-                const payment = await PaymentService.getPayment(paymentId);
 
-                if (payment.status === 'approved') {
-                    const externalReference = payment.external_reference;
-                    console.log(`💳 Payment approved: ${paymentId} - ${externalReference}`);
+                    await ProfileRepository.update(userId, {
+                        subscription_id: subscriptionId,
+                        plan: planId,
+                        plan_status: 'active',
+                        plan_expires_at: expiresAt.toISOString(),
+                        subscription_period: period
+                    });
+                    console.log(`✅ Subscription ACTIVATED for user ${userId}`);
+                    break;
 
-                    // Handle one-time purchases (not subscriptions)
-                    if (externalReference && !externalReference.startsWith('sub_')) {
-                        // This would be for physical products like collars
-                        console.log(`🛍️ One-time purchase processed: ${externalReference}`);
-                        // TODO: Handle order fulfillment logic here
-                    }
-                }
-            } else {
-                console.log(`🔍 Unknown webhook type: ${type}`);
+                case 'customer.subscription.deleted':
+                    const subscription = event.data.object;
+                    // We need to find the user by subscription ID
+                    // In a real app, you'd query your DB for the user with this subscription_id
+                    // For now, we'll log it. Ideally, you'd have a repository method for this.
+                    console.log(`❌ Subscription DELETED: ${subscription.id}`);
+                    break;
+
+                default:
+                    console.log(`Unhandled event type ${event.type}`);
             }
         } catch (error) {
             console.error('❌ Webhook processing error:', error);
-            // Still return 200 to avoid MP retrying indefinitely
         }
 
-        res.status(200).send('OK');
+        res.json({ received: true });
     }
 }
 

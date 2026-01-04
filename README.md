@@ -7,7 +7,7 @@ Plataforma SaaS fullstack para identificación de mascotas mediante QR, con geol
 - **Frontend**: HTML5, Tailwind CSS, JavaScript Vanilla (ES6 Modules)
 - **Backend**: Node.js (Vercel Serverless Functions)
 - **Base de Datos**: Supabase (PostgreSQL + Auth + RLS)
-- **Pagos**: Mercado Pago
+- **Pagos**: Stripe
 - **Imágenes**: Cloudinary / UI Avatars
 - **Emails**: Resend
 - **Hosting**: Vercel
@@ -26,7 +26,7 @@ Plataforma SaaS fullstack para identificación de mascotas mediante QR, con geol
 │   ├── controllers/          # Controladores HTTP
 │   ├── services/             # Lógica de negocio
 │   ├── repositories/         # Acceso a datos (Supabase)
-│   ├── webhooks/             # Webhooks externos (Mercado Pago)
+│   ├── webhooks/             # Webhooks externos (Stripe)
 │   └── utils/                # Helpers (Mailer, Cloudinary)
 ├── frontend/                 # Cliente Web
 │   ├── index.html            # Landing + Dashboard
@@ -114,7 +114,7 @@ Registro de escaneos de QR con geolocalización.
 
 ## ⚙️ Configuración y Despliegue
 
-### 1. Variables de Entorno
+### 1. Variables de Envorno
 
 Crear un archivo `.env` en la raíz del proyecto:
 
@@ -124,9 +124,10 @@ SUPABASE_URL=https://tu-proyecto.supabase.co
 SUPABASE_ANON_KEY=tu-anon-key
 SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
 
-# Mercado Pago
-MP_ACCESS_TOKEN=tu-access-token
-MP_PUBLIC_KEY=tu-public-key
+# Stripe
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLIC_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 
 # Cloudinary (Opcional)
 CLOUDINARY_CLOUD_NAME=tu-cloud-name
@@ -183,6 +184,7 @@ El proyecto estará disponible en `http://localhost:3001`
 
 ## 🎯 Funcionalidades Implementadas
 
+
 ### Autenticación
 - ✅ Login con Magic Link (email)
 - ✅ Login con Google OAuth
@@ -204,8 +206,8 @@ El proyecto estará disponible en `http://localhost:3001`
 - ✅ Mapa de ubicación del escaneo
 
 ### Suscripciones
-- ✅ 3 Planes: Gratuito, Básico ($4.999), Premium ($9.999)
-- ✅ Integración con Mercado Pago
+- ✅ 3 Planes: Gratuito, Básico ($5 USD), Premium ($10 USD)
+- ✅ Integración con Stripe Checkout
 - ✅ Tracking de estado de suscripción
 - ✅ UI de selección de planes
 

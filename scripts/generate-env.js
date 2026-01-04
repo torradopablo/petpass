@@ -17,7 +17,7 @@ console.log('DEBUG: SUPABASE_URL is', process.env.SUPABASE_URL ? 'PRESENT' : 'MI
 const envContent = `window.env = {
     SUPABASE_URL: '${process.env.SUPABASE_URL || ""}',
     SUPABASE_ANON_KEY: '${process.env.SUPABASE_ANON_KEY || ""}',
-    MP_PUBLIC_KEY: '${process.env.MP_PUBLIC_KEY || ""}'
+    STRIPE_PUBLIC_KEY: '${process.env.STRIPE_PUBLIC_KEY || ""}'
 };`;
 
 const outputPath = path.join(__dirname, '../frontend/js/env.js');
