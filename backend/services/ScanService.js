@@ -1,6 +1,7 @@
 const ScanRepository = require('../repositories/ScanRepository');
 const PetRepository = require('../repositories/PetRepository');
 const Mailer = require('../utils/mailer');
+const Plans = require('../config/Plans');
 
 class ScanService {
     async createScan(scanData) {
@@ -17,6 +18,27 @@ class ScanService {
         }
 
         if (pet && pet.profiles && pet.profiles.email) {
+            const ownerPlanKey = (pet.profiles.plan || 'gratis').toUpperCase();
+            const ownerPlan = Plans[ownerPlanKey] || Plans.GRATIS;
+
+            // Enforce plan restrictions: only plans with scanAlerts enabled receive emails
+            if (!ownerPlan.features?.scanAlerts) {
+                return scan;
+            }
+
+            // If plan status is not active, do not send notifications
+            if (pet.profiles.plan_status && pet.profiles.plan_status !== 'active') {
+                return scan;
+            }
+
+            // If there is an expiry date and it's in the past, do not send notifications
+            if (pet.profiles.plan_expires_at) {
+                const expiresAt = new Date(pet.profiles.plan_expires_at);
+                if (!isNaN(expiresAt.getTime()) && expiresAt.getTime() < Date.now()) {
+                    return scan;
+                }
+            }
+
             const scanLat = parseFloat(scanData.latitude);
             const scanLon = parseFloat(scanData.longitude);
 

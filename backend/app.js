@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ override: true });
 
 // Debug: Check if environment variables are loaded
 console.log('Environment variables loaded:');

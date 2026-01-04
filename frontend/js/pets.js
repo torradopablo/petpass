@@ -288,54 +288,66 @@ export const Pets = {
             photo_url: photo_url
         };
 
-        // Handle Address
-        const useSameAddress = document.getElementById('add-pet-same-address').checked;
-        if (useSameAddress) {
-            // Get user address from profiles
-            const { data: profile } = await supabase.from('profiles').select('address, latitude, longitude').eq('id', Auth.user.id).single();
-            if (profile) {
-                petData.address = profile.address;
-                petData.latitude = profile.latitude;
-                petData.longitude = profile.longitude;
-            }
-        } else {
-            const customAddress = formData.get('address');
-            petData.address = customAddress;
-            // Use map coordinates if available/moved
-            petData.latitude = this.coords.add.lat;
-            petData.longitude = this.coords.add.lng;
-        }
-
         try {
-            UI.setLoading(true, btnSubmit.id || 'btn-submit-pet');
+            UI.setLoading(true, btnSubmit?.id || 'btn-submit-pet');
 
-            const { data, error } = await supabase
-                .from('pets')
-                .insert([petData])
-                .select();
+            // Handle Address
+            const useSameAddressEl = document.getElementById('add-pet-same-address');
+            const useSameAddress = useSameAddressEl ? useSameAddressEl.checked : false;
+            if (useSameAddress) {
+                // Get user address from profiles
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('address, latitude, longitude')
+                    .eq('id', Auth.user.id)
+                    .single();
+                if (profile) {
+                    petData.address = profile.address;
+                    petData.latitude = profile.latitude;
+                    petData.longitude = profile.longitude;
+                }
+            } else {
+                const customAddress = formData.get('address');
+                petData.address = customAddress;
+                petData.latitude = this.coords.add.lat;
+                petData.longitude = this.coords.add.lng;
+            }
 
-            if (error) throw error;
+            // IMPORTANT: create via backend so plan limits are enforced server-side
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                throw new Error('No hay sesión activa');
+            }
 
-            UI.toast('Mascota agregada correctamente');
+            const response = await fetch('/api/pets', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(petData)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                let error;
+                try {
+                    error = JSON.parse(errorText);
+                } catch (e) {
+                    error = { error: errorText };
+                }
+                throw new Error(error.error || error.message || 'Error al crear mascota');
+            }
+
+            await response.json();
+            UI.toast('Mascota agregada con éxito');
             UI.closeModal('modal-add-pet');
-            document.getElementById('add-pet-form').reset();
-            const preview = document.getElementById('preview-photo');
-            if (preview) preview.classList.add('hidden');
-
-            // Reset to default
-            this.selectedSpecies = 'perro';
-            this.renderVaccines('perro');
-
-            this.loadPets();
-
+            await this.loadPets();
         } catch (error) {
+            console.error('Error adding pet:', error);
             UI.toast('Error al agregar mascota: ' + error.message, 'error');
         } finally {
-            const btn = document.querySelector('#add-pet-form button[type="submit"]');
-            if (btn) {
-                btn.innerHTML = 'Guardar';
-                btn.disabled = false;
-            }
+            UI.setLoading(false, btnSubmit?.id || 'btn-submit-pet');
         }
     },
 

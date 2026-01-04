@@ -58,7 +58,7 @@ class PetRepository {
             .from('pets')
             .select(`
                 *,
-                profiles:owner_id ( email, full_name )
+                profiles:owner_id ( email, full_name, plan, plan_status, plan_expires_at )
             `)
             .eq('id', id)
             .single();
